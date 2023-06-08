@@ -30,6 +30,7 @@ df <- res %>%
     "Age (l'enquête est destinée aux personnes agées de 14 ans et plus)",
     "Durée de l’absence du pays d’origine   Mettre 0 si moins d'un an",
     "Situation de handicap",
+    "Type de formation",
     "Combien de temps entre votre retour et la réception de l’aide à la réintégration (ou sa première fourniture) ? En semaines",
     "Par quel moyen avez-vous reçu cette assistance économique ?",
     "Quel est le principal type d’assistance économique que vous avez reçue ?",
@@ -79,6 +80,8 @@ df <- res %>%
       "Durée de l’absence du pays d’origine   Mettre 0 si moins d'un an",
     "Disabled" =
       "Situation de handicap",
+    "TrainingType" =
+      "Type de formation",
     "TimeToReceiveSupport" =
       "Combien de temps entre votre retour et la réception de l’aide à la réintégration (ou sa première fourniture) ? En semaines",
     "ReceivedSupportAs" =
@@ -338,13 +341,26 @@ make_plots_overall(df)
 # Implement on custom data
 #make_plots_overall(df[df$City=='', ]) 
 
+# Recode
+levels(as.factor(df$BusinessSucess))
+levels(as.factor(df$BusinessProfitability))
 
+model1 <- df %>% mutate(
+  BusinessSucess =
+    case_when(BusinessSucess == 'Actuellement ouvert et les activités marchent bien' ~ 'High',
+              BusinessSucess != 'Actuellement ouvert et les activités marchent bien' ~ 'Low'),
+  BusinessProfitability =
+    case_when(BusinessProfitability == 'Oui' ~ 'High',
+              BusinessProfitability != 'Oui' ~ 'Low',)
+)
 
+levels(as.factor(model1$BusinessSucess))
+levels(as.factor(model1$BusinessProfitability))
 
+colSums(is.na(df))
 
-
-
-
+# Export
+write_excel_csv(model1, 'jamovi/model1.csv')
 
 
 
