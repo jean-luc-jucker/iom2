@@ -15,12 +15,40 @@ df <- rss %>%
   # PULL ######################################################################
   select(
     # Metadata
+    
+    # only for checking purposes, to be removed in due time
+    "Code Mimosa Corrigé",
+    "Economic reintegration Score",
+    "Social reintegration score",
 
     # Dependent variables
+    # Economic
+    "Pour quelle raison prévoyez-vous de déménager?...81", # Read Note 1!
     "2. A quelle fréquence avez-vous dû réduire la quantité ou la qualité des aliments que vous mangez en raison de leur coût au cours du mois passe (des 30 derniers jours)?",
     "3. Avez vous la possibilité emprunter de l’argent si vous en avez besoin?\r\n(Perception de la disponibilité du crédit, quelle que soit la source - banque, famille, amis, système de prêts traditionnel, microcrédit, etc. - et peu importe si le répondant prend effectivement des prêts ou non)",
     "4. Empruntez-vous de l’argent? À quelle fréquence?\r\n(Comportement autodéclaré par le répondant, peu importe la source du crédit et le montant – même les très petits montants comptent)",
-    "5. En moyenne, quel est le montant le plus élevé : vos dépenses chaque mois ou votre dette" 
+    "5. En moyenne, quel est le montant le plus élevé : vos dépenses chaque mois ou votre dette",
+    "6. Comment évalueriez-vous votre accès aux possibilités (emploi et formation)?",
+    "7. Travaillez-vous actuellement?\r\n(Emploi formel ou informel; travail indépendant; propre entreprise ou exploitation agricole. Si l’intimé suit actuellement une formation non rémunérée ou fréquente l’école, sélectionnez « Sans objet ».)",
+    "8. Possédez-vous l’un des actifs productifs suivants?...114",
+    "9. Êtes-vous actuellement à la recherche d’un emploi?",
+    # Social
+    "11. Comment évalueriez-vous votre accès au logement dans votre collectivité?", # Read Note 4!
+    "12. Comment évalueriez-vous la condition du logement dans lequelle vous vivez aujourd’hui?",
+    "13. Comment évalueriez-vous l’accès à l’éducation dans votre coommunauté?",
+    "14. Tous les enfants d’âge scolaire de votre ménage fréquentent-ils actuellement l’école?\r\n(Cela comprend les enfants dont le répondant est un parent ou un tuteur, ainsi que les autres enfants du ménage des répondants.)",
+    "15. Comment évalueriez-vous l’accès à la justice et à l’application de la loi dans votre collectivité?\r\n(tribunaux, police, armée, etc.)",
+    "16. Avez-vous au moins une pièce d’identité?\r\n(passeport, document d’identification national ou local, certificat de naissance, etc.)",
+    "17. Comment évalueriez-vous l’accès aux documents (pièce d’identité personnelle, certificats de naissance, etc.) dans votre collectivité?",
+    "18. Comment évalueriez-vous l’accès à l’eau potable dans votre collectivité?",
+    "19. Comment évalueriez-vous l’accès aux soins de santé dans votre collectivité?",
+    "20 . Quelle est la qualité des services de santé auquels vous avez accès?",
+    # Psycho social
+    "22. À quelle fréquence êtes-vous invité ou participez-vous à des activités sociales (célébrations, mariages, autres événements) au sein de votre communauté?", # Read Note 6!
+    "23. Que pensez-vous de votre réseau de soutien? Pouvez-vous compter sur le soutien du réseau?\r\n(Réseau de soutien qui peut fournir une aide émotionnelle ou pratique en cas de besoin, peu importe le type factuel, la taille ou la force du soutien)",
+    "24. Avez-vous l’impression de faire partie de la collectivité où vous vivez actuellement?",
+    "25. Dans quelle mesure vous sentez-vous en sécurité physiquement pour vous-même et votre famille pendant vos activités quotidiennes à l’extérieur? \r\n(Perception de la sécurité physique contre la violence et la persécution et/ou d’autres formes d’insécurité. Peut être lié à l’appartenance à un groupe social ou au statut de rapatrié seul.)",
+    "26. À quelle fréquence avez-vous connu des tensions ou des conflits importants entre vous et votre famille depuis votre retour?"
     
     
 
@@ -33,6 +61,9 @@ df <- rss %>%
     # Metadata
 
     # Dependent variables
+    # Economic
+    "1_economic" =
+      "Pour quelle raison prévoyez-vous de déménager?...81", # Read Note 1!
     "2_food" =
       "2. A quelle fréquence avez-vous dû réduire la quantité ou la qualité des aliments que vous mangez en raison de leur coût au cours du mois passe (des 30 derniers jours)?",
     "3_borrow" =
@@ -40,7 +71,47 @@ df <- rss %>%
     "4_borrow_freq" = 
       "4. Empruntez-vous de l’argent? À quelle fréquence?\r\n(Comportement autodéclaré par le répondant, peu importe la source du crédit et le montant – même les très petits montants comptent)",
     "5_debt_ratio" = 
-      "5. En moyenne, quel est le montant le plus élevé : vos dépenses chaque mois ou votre dette" 
+      "5. En moyenne, quel est le montant le plus élevé : vos dépenses chaque mois ou votre dette",
+    "6_employment" =
+      "6. Comment évalueriez-vous votre accès aux possibilités (emploi et formation)?",
+    "7_working" = 
+      "7. Travaillez-vous actuellement?\r\n(Emploi formel ou informel; travail indépendant; propre entreprise ou exploitation agricole. Si l’intimé suit actuellement une formation non rémunérée ou fréquente l’école, sélectionnez « Sans objet ».)",
+    "8_assets" = 
+      "8. Possédez-vous l’un des actifs productifs suivants?...114",
+    "9_searching_job" = 
+      "9. Êtes-vous actuellement à la recherche d’un emploi?",
+    # Social
+    "10_housing" = # Read Note 4!
+      "11. Comment évalueriez-vous votre accès au logement dans votre collectivité?",
+    "11_housing_qual" = 
+      "12. Comment évalueriez-vous la condition du logement dans lequelle vous vivez aujourd’hui?",
+    "12_education" = 
+      "13. Comment évalueriez-vous l’accès à l’éducation dans votre coommunauté?",
+    "13_school" = 
+      "14. Tous les enfants d’âge scolaire de votre ménage fréquentent-ils actuellement l’école?\r\n(Cela comprend les enfants dont le répondant est un parent ou un tuteur, ainsi que les autres enfants du ménage des répondants.)",
+    "14_justice" = 
+      "15. Comment évalueriez-vous l’accès à la justice et à l’application de la loi dans votre collectivité?\r\n(tribunaux, police, armée, etc.)",
+    "15_id" = 
+      "16. Avez-vous au moins une pièce d’identité?\r\n(passeport, document d’identification national ou local, certificat de naissance, etc.)",
+    "16_documentation" = 
+      "17. Comment évalueriez-vous l’accès aux documents (pièce d’identité personnelle, certificats de naissance, etc.) dans votre collectivité?",
+    "17_water" = 
+      "18. Comment évalueriez-vous l’accès à l’eau potable dans votre collectivité?",
+    "18_health" = 
+      "19. Comment évalueriez-vous l’accès aux soins de santé dans votre collectivité?",
+    "19_health_qual" = 
+      "20 . Quelle est la qualité des services de santé auquels vous avez accès?",
+    # Psycho social
+    "21_socialize" = 
+      "22. À quelle fréquence êtes-vous invité ou participez-vous à des activités sociales (célébrations, mariages, autres événements) au sein de votre communauté?",
+    "22_network" = 
+      "23. Que pensez-vous de votre réseau de soutien? Pouvez-vous compter sur le soutien du réseau?\r\n(Réseau de soutien qui peut fournir une aide émotionnelle ou pratique en cas de besoin, peu importe le type factuel, la taille ou la force du soutien)",
+    "23_community" = 
+      "24. Avez-vous l’impression de faire partie de la collectivité où vous vivez actuellement?",
+    "24_safety" = 
+      "25. Dans quelle mesure vous sentez-vous en sécurité physiquement pour vous-même et votre famille pendant vos activités quotidiennes à l’extérieur? \r\n(Perception de la sécurité physique contre la violence et la persécution et/ou d’autres formes d’insécurité. Peut être lié à l’appartenance à un groupe social ou au statut de rapatrié seul.)",
+    "25_family_conflict" = 
+      "26. À quelle fréquence avez-vous connu des tensions ou des conflits importants entre vous et votre famille depuis votre retour?"
     
     
     # Grouping variables
@@ -48,7 +119,17 @@ df <- rss %>%
     ) %>% 
   
   # CODE TO NUMERIC ###########################################################
-  mutate(`2_food_n` =
+  # Economic
+  mutate(`1_economic_n` =
+           recode(`1_economic`,
+                  "Très satisfait" = 1,
+                  "Satisafait" = 0.75,
+                  "Neutre" = 0.5,
+                  "Insatisfait" = 0.25,
+                  "Très insatisafait" = 0,
+                  "Je préfére ne pas répondre" = 0.5
+           ),
+         `2_food_n` =
            recode(`2_food`,
                   "Jamais" = 1,
                   "Rarement( Une fois le mois ou pas tous les mois)" = 0.75,
@@ -56,14 +137,14 @@ df <- rss %>%
                   "Souvent( au moins une fois la semaine)" = 0.25,
                   "Très souvent ( plusieurs fois dans la semaine/chaque jours)" = 0,
                   "Je souhaite ne pas répondre" = 0.5
-                  ),
+          ),
          `3_borrow_n` = 
            recode(`3_borrow`,
                   "Oui" = 1,
                   "Non" = 0,
                   "Je ne sait pas" = 0.5,
                   "je ne souhaite pas répondre" = 0.5
-                  ),
+          ),
          `4_borrow_freq_n` =
            recode(`4_borrow_freq`,
                   "Jamais" = 1,
@@ -72,80 +153,392 @@ df <- rss %>%
                   "Souvent( au moins une fois la semaine)" = 0.25,
                   "Très souvent ( plusieurs fois dans la semaine/chaque jours)" = 0,
                   "Je souhaite ne pas répondre" = 0.5
-                  ),
+          ),
          `5_debt_ratio_n` =
-           recode(`5_debt_ratio`, # Read Note 1!
+           recode(`5_debt_ratio`, # Read Note 2!
                   "Les dépenses sont plus importantes" = 1,
                   "La dette est plus grande" = 0,
                   "Je souhaite ne pas répondre" = 0.5
+          ),
+         `6_employment_n` =
+           recode(`6_employment`,
+                  "Très bien" = 1,
+                  "Bien" = 0.75,
+                  "Acceptable" = 0.5,
+                  "Faible" = 0.25,
+                  "Très faible" = 0,
+                  "Je ne sais pas" = 0.5,
+                  "je ne souhaite pas répondre" = 0.5
+           ),
+         `7_working_n` =
+           recode(`7_working`,
+                  "Oui" = 1,
+                  "Non" = 0,
+                  "Je ne sait pas" = 0.5,
+                  "je ne souhaite pas répondre" = 0.5,
+                  "Pas applicable" = 0.5
+           ),
+         `8_assets_n` =
+           recode(`8_assets`, # Read Note 3! Warning can be safely ignored
+                  "Aucun actif détenu" = 0,
+                  "Je n'ai aucun actif" = 0.5,
+                  "Je ne sais pas" = 0.5,
+                  "Je souhaite ne pas répondre" = 0.5
            ),
          
-    ) %>% 
-  
-  # REPLACE NA  ###############################################################
-  # According to documentation, all NAs should be coded 0.5
-  mutate(`5_debt_ratio_n` = replace_na(`5_debt_ratio_n`, 1) # Read Note 1!
+         `9_searching_job_n` =
+           recode(`9_searching_job`,
+                  "Non" = 1,
+                  "Oui" = 0,
+                  "Je ne sait pas" = 0.5
+           ),
+         # Social
+         `10_housing_n` =
+           recode(`10_housing`,
+                  "Très bien" = 1,
+                  "Bien" = 0.75,
+                  "Acceptable" = 0.5,
+                  "Faible" = 0.25,
+                  "Très faible" = 0,
+                  "Je ne sais pas" = 0.5
+           ),
+         `11_housing_qual_n` =
+           recode(`11_housing_qual`,
+                  "Très bien" = 1,
+                  "Bien" = 0.75,
+                  "Acceptable" = 0.5,
+                  "Faible" = 0.25,
+                  "Très faible" = 0,
+                  "Je ne sais pas" = 0.5
+           ),
+         `12_education_n` =
+           recode(`12_education`,
+                  "Très bien" = 1,
+                  "Bien" = 0.75,
+                  "Acceptable" = 0.5,
+                  "Faible" = 0.25,
+                  "Très faible" = 0,
+                  "Je ne sais pas" = 0.5
+           ),
+         `13_school_n` = # Read Note 5!
+           recode(`13_school`,
+                  "Oui" = 1,
+                  "Non - quelques uns mais pas tous" = 0.5,
+                  "Aucun" = 0,
+                  "Non" = 0
+           ),
+         `14_justice_n` =
+           recode(`14_justice`,
+                  "Très bien" = 1,
+                  "Bien" = 0.75,
+                  "Acceptable" = 0.5,
+                  "Faible" = 0.25,
+                  "Très faible" = 0,
+                  "Je ne sais pas" = 0.5,
+                  "je ne souhaite pas répondre" = 0.5
+           ),
+         `15_id_n` =
+           recode(`15_id`,
+                  "Oui" = 1,
+                  "Non" = 0
+           ),
+         `16_documentation_n` =
+           recode(`16_documentation`,
+                  "Très bien" = 1,
+                  "Bien" = 0.75,
+                  "Acceptable" = 0.5,
+                  "Faible" = 0.25,
+                  "Très faible" = 0,
+                  "Je ne sais pas" = 0.5,
+                  "je ne souhaite pas répondre" = 0.5
+           ),
+         `17_water_n` =
+           recode(`17_water`,
+                  "Très bien" = 1,
+                  "Bien" = 0.75,
+                  "Acceptable" = 0.5,
+                  "Faible" = 0.25,
+                  "Très faible" = 0,
+                  "Je ne sais pas" = 0.5
+           ),
+         `18_health_n` =
+           recode(`18_health`,
+                  "Très bien" = 1,
+                  "Bien" = 0.75,
+                  "Acceptable" = 0.5,
+                  "Faible" = 0.25,
+                  "Très faible" = 0,
+                  "Je ne sais pas" = 0.5,
+                  "je ne souhaite pas répondre" = 0.5
+           ),
+         `19_health_qual_n` =
+           recode(`19_health_qual`,
+                  "Très bien" = 1,
+                  "Bien" = 0.75,
+                  "Acceptable" = 0.5,
+                  "Faible" = 0.25,
+                  "Très faible" = 0,
+                  "Je ne sais pas" = 0.5
+           ),
+         # Measure 20 is a construct
+         `20_services_construct_n` = (`10_housing_n` + `12_education_n` + `14_justice_n` + `16_documentation_n` + `17_water_n` + `18_health_n`) / 6,
+         # Psycho social
+         `21_socialize_n` =
+           recode(`21_socialize`,
+                  "Très souvent ( plusieurs fois dans la semaine/chaque jours)" = 1,
+                  "Souvent( au moins une fois la semaine)" = 0.75,
+                  "Des fois ( 2 ou 3 fois le mois)" = 0.5,
+                  "Rarement( Une fois le mois ou pas tous les mois)" = 0.25,
+                  "Jamais" = 0
+           ),
+         `22_network_n` =
+           recode(`22_network`,
+                  "Tres bon - un très fort réseau" = 1,
+                  "Bien" = 0.75,
+                  "Correct" = 0.5,
+                  "Mauvais" = 0.25,
+                  "Très mauvais - un réseau très faible" = 0,
+                  "Je ne sais pas" = 0.5,
+                  "je ne souhaite pas répondre" = 0.5
+           ),
+         `23_community_n` =
+           recode(`23_community`,
+                  "Je suis d'accord - je sens fortement que je fais partie de la communauté" = 1,
+                  "je suis un peu d'accord" = 0.75,
+                  "je ne suis pas d'accord ou pas d'accord" = 0.5, # Read Note 7!
+                  "je suis un peu en désaccord" = 0.25,
+                  "Je ne suis pas du tout d’accord - je n’ai pas du tout l’impression de faire partie de la communauté" = 0,
+                  "Je ne sais pas" = 0.5,
+                  "Je ne veux pas répondre" = 0.5
+           ),
+         `24_safety_n` =
+           recode(`24_safety`,
+                  "Je me sens très en sécurité tout le temps" = 1,
+                  "Je me sens en sécurité la plupart du temps" = 0.75,
+                  "Neutre" = 0.5,
+                  "Je ne me sens pas en sécurité la plupart du temps" = 0.25,
+                  "Je me sens très en danger tout le temps" = 0
+           ),
+         `25_family_conflict_n` =
+           recode(`25_family_conflict`,
+                  "Jamais" = 1,
+                  "Rarement( Une fois le mois ou pas tous les mois)" = 0.75,
+                  "Des fois ( 2 ou 3 fois le mois)" = 0.5,
+                  "Souvent( au moins une fois la semaine)" = 0.25,
+                  "Très souvent ( plusieurs fois dans la semaine/chaque jours)" = 0,
+                  "Je souhaite ne pas répondre" = 0.5
+           ),
+         
+         
+         
+         
          
     ) %>% 
   
   # REPLACE NA  ###############################################################
   # According to documentation, all NAs should be coded 0.5
-
+  # Also note, these are either pre-existing NAs, or NAs produce by recode()*
+  # Economic
+  mutate(`5_debt_ratio_n` = replace_na(`5_debt_ratio_n`, 0.5), # Read Note 2! # previously 1!!!!!!!!!!
+         `8_assets_n` = replace_na(`8_assets_n`, 1), # * Read Note 3!
+         # Social
+         `13_school_n` = replace_na(`13_school_n`, 0.5),
+         # Psycho social
+         
+    ) %>% 
   
   # ADD WEIGHT ################################################################
-  mutate(`2_food_dim_weight` = 0.12,
+  # Economic
+  mutate(`1_economic_dim_weight` = 0.15,
+         `1_economic_comp_weight` = 0.05,
+         `2_food_dim_weight` = 0.12,
          `2_food_comp_weight` = 0.08,
-         
          `3_borrow_dim_weight` = 0.08,
          `3_borrow_comp_weight` = 0.02,
-         
          `4_borrow_freq_dim_weight` = 0.1,
          `4_borrow_freq_comp_weight` = 0.02,
-         
          `5_debt_ratio_dim_weight` = 0.08,
          `5_debt_ratio_comp_weight` = 0.04,
+         `6_employment_dim_weight` = 0.13,
+         `6_employment_comp_weight` = 0.03,
+         `7_working_dim_weight` = 0.1,
+         `7_working_comp_weight` = 0.03,
+         `8_assets_dim_weight` = 0.11,
+         `8_assets_comp_weight` = 0.03,
+         `9_searching_job_dim_weight` = 0.13,
+         `9_searching_job_comp_weight` = 0.03,
+         # Social
+         `10_housing_dim_weight` = 0.1,
+         `10_housing_comp_weight` = 0.03,
+         `11_housing_qual_dim_weight` = 0.12,
+         `11_housing_qual_comp_weight` = 0.03,
+         `12_education_dim_weight` = 0.11,
+         `12_education_comp_weight` = 0.03,
+         `13_school_dim_weight` = 0.07,
+         `13_school_comp_weight` = 0.02,
+         `14_justice_dim_weight` = 0.12,
+         `14_justice_comp_weight` = 0.04,
+         `15_id_dim_weight` = 0.05,
+         `15_id_comp_weight` = 0.05,
+         `16_documentation_dim_weight` = 0, # weight = 0!
+         `16_documentation_comp_weight` = 0, # weight = 0!
+         `17_water_dim_weight` = 0, # weight = 0!
+         `17_water_comp_weight` = 0, # weight = 0!
+         `18_health_dim_weight` = 0.2,
+         `18_health_comp_weight` = 0.06,
+         `19_health_qual_dim_weight` = 0.15,
+         `19_health_qual_comp_weight` = 0.03,
+         `20_services_construct_dim_weight` = 0.08, # construct!
+         `20_services_construct_comp_weight` = 0.04, # construct!
+         # Psycho social
+         `21_socialize_dim_weight` = 0.12,
+         `21_socialize_comp_weight` = 0.04,
+         `22_network_dim_weight` = 0.05,
+         `22_network_comp_weight` = 0.03,
+         `23_community_dim_weight` = 0.15,
+         `23_community_comp_weight` = 0.04,
+         `24_safety_dim_weight` = 0.1,
+         `24_safety_comp_weight` = 0.05,
+         
+         `25_family_conflict_dim_weight` = 0.12,
+         `25_family_conflict_comp_weight` = 0.01,
+         
+         
+         
   
     ) %>% 
   
-  # COMPUTE SCORE #############################################################
-  mutate(`2_food_dim_score` = `2_food_n` * `2_food_dim_weight`,
+  # COMPUTE SCORES #############################################################
+  # Economic
+  mutate(`1_economic_dim_score` = `1_economic_n` * `1_economic_dim_weight`,
+         `1_economic_comp_score` = `1_economic_n` * `1_economic_comp_weight`,
+         `2_food_dim_score` = `2_food_n` * `2_food_dim_weight`,
          `2_food_comp_score` = `2_food_n` * `2_food_comp_weight`,
-         
          `3_borrow_dim_score` = `3_borrow_n` * `3_borrow_dim_weight`,
          `3_borrow_comp_score` = `3_borrow_n` * `3_borrow_comp_weight`,
-         
          `4_borrow_freq_dim_score` = `4_borrow_freq_n` * `4_borrow_freq_dim_weight`,
          `4_borrow_freq_comp_score` = `4_borrow_freq_n` * `4_borrow_freq_comp_weight`,
-         
          `5_debt_ratio_dim_score` = `5_debt_ratio_n` * `5_debt_ratio_dim_weight`,
          `5_debt_ratio_comp_score` = `5_debt_ratio_n` * `5_debt_ratio_comp_weight`,
+         `6_employment_dim_score` = `6_employment_n` * `6_employment_dim_weight`,
+         `6_employment_comp_score` = `6_employment_n` * `6_employment_comp_weight`,
+         `7_working_dim_score` = `7_working_n` * `7_working_dim_weight`,
+         `7_working_comp_score` = `7_working_n` * `7_working_comp_weight`,
+         `8_assets_dim_score` = `8_assets_n` * `8_assets_dim_weight`,
+         `8_assets_comp_score` = `8_assets_n` * `8_assets_comp_weight`,
+         `9_searching_job_dim_score` = `9_searching_job_n` * `9_searching_job_dim_weight`,
+         `9_searching_job_comp_score` = `9_searching_job_n` * `9_searching_job_comp_weight`,
+         # Social
+         `10_housing_dim_score` = `10_housing_n` * `10_housing_dim_weight`,
+         `10_housing_comp_score` = `10_housing_n` * `10_housing_comp_weight`,
+         `11_housing_qual_dim_score` = `11_housing_qual_n` * `11_housing_qual_dim_weight`,
+         `11_housing_qual_comp_score` = `11_housing_qual_n` * `11_housing_qual_comp_weight`,
+         `12_education_dim_score` = `12_education_n` * `12_education_dim_weight`,
+         `12_education_comp_score` = `12_education_n` * `12_education_comp_weight`,
+         `13_school_dim_score` = `13_school_n` * `13_school_dim_weight`,
+         `13_school_comp_score` = `13_school_n` * `13_school_comp_weight`,
+         `14_justice_dim_score` = `14_justice_n` * `14_justice_dim_weight`,
+         `14_justice_comp_score` = `14_justice_n` * `14_justice_comp_weight`,
+         `15_id_dim_score` = `15_id_n` * `15_id_dim_weight`,
+         `15_id_comp_score` = `15_id_n` * `15_id_comp_weight`,
+         `16_documentation_dim_score` = `16_documentation_n` * `16_documentation_dim_weight`, # weight=0!
+         `16_documentation_comp_score` = `16_documentation_n` * `16_documentation_comp_weight`, # weight=0!
+         `17_water_dim_score` = `17_water_n` * `17_water_dim_weight`, # weight = 0!
+         `17_water_comp_score` = `17_water_n` * `17_water_comp_weight`, # weight = 0!
+         `18_health_dim_score` = `18_health_n` * `18_health_dim_weight`,
+         `18_health_comp_score` = `18_health_n` * `18_health_comp_weight`,
+         `19_health_qual_dim_score` = `19_health_qual_n` * `19_health_qual_dim_weight`,
+         `19_health_qual_comp_score` = `19_health_qual_n` * `19_health_qual_comp_weight`,
+         `20_services_construct_dim_score` = `20_services_construct_n` * `20_services_construct_dim_weight`, # construct!
+         `20_services_construct_comp_score` = `20_services_construct_n` * `20_services_construct_comp_weight`, # construct!
+         # Psycho social
+         `21_socialize_dim_score` = `21_socialize_n` * `21_socialize_dim_weight`,
+         `21_socialize_comp_score` = `21_socialize_n` * `21_socialize_comp_weight`,
+         `22_network_dim_score` = `22_network_n` * `22_network_dim_weight`,
+         `22_network_comp_score` = `22_network_n` * `22_network_comp_weight`,
+         `23_community_dim_score` = `23_community_n` * `23_community_dim_weight`,
+         `23_community_comp_score` = `23_community_n` * `23_community_comp_weight`,
+         `24_safety_dim_score` = `24_safety_n` * `24_safety_dim_weight`,
+         `24_safety_comp_score` = `24_safety_n` * `24_safety_comp_weight`,
+         
+         `25_family_conflict_dim_score` = `25_family_conflict_n` * `25_family_conflict_dim_weight`,
+         `25_family_conflict_comp_score` = `25_family_conflict_n` * `25_family_conflict_comp_weight`,
+         
+         
     
-    )
+    ) %>% 
   
+  # COMPUTE DIMENSIONAL SCORES ################################################
+  # Economic
+  mutate(EconomicScore = 
+           `1_economic_dim_score` + `2_food_dim_score` + `3_borrow_dim_score` + `4_borrow_freq_dim_score` + `5_debt_ratio_dim_score` + `6_employment_dim_score` + `7_working_dim_score` + `8_assets_dim_score` + `9_searching_job_dim_score`,
+         # Social
+         SocialScore = `10_housing_dim_score` + `11_housing_qual_dim_score` + `12_education_dim_score` + `13_school_dim_score` + `14_justice_dim_score` + `15_id_dim_score` + `16_documentation_dim_score` + `17_water_dim_score` + `18_health_dim_score` + `19_health_qual_dim_score` + `20_services_construct_dim_score`,
+         # Psycho social
+           
+           ) %>% 
+  
+  # only for checking purposes, to be removed in due time
+  mutate(Difference = SocialScore - `Social reintegration score`)
+  
+# Warnings
+# (1) Problem while computing `8_assets_n = recode(...)`. Can be safely ignored,
+# since NA are replaced following it, on purpose.
 
+# export
+#write.csv(df, 'data_clean/df_clean_temp.csv')
 
 ###############################################################################
+###############################################################################
+
 names(rss)
 
-rss %>% group_by(`5. En moyenne, quel est le montant le plus élevé : vos dépenses chaque mois ou votre dette`) %>% summarise(Count = n())
+rss %>% group_by(`26. À quelle fréquence avez-vous connu des tensions ou des conflits importants entre vous et votre famille depuis votre retour?`) %>% summarise(Count = n())
 
-df %>% group_by(`5_debt_ratio_n`) %>% summarise(Count = n())
+df %>% group_by(`25_family_conflict_n`) %>% summarise(Count = n())
 view(df)
+
+
+###############################################################################
 ###############################################################################
 
+# Economic
+# Faulty cases
+faulty <- df %>% select(`Code Mimosa Corrigé`, Difference) %>% filter(Difference != 0)
+faulty
+write.csv(faulty, 'data_clean/faulty_cases.csv')
+
+# Duplicates
+dupes <- df[duplicated(df$`Code Mimosa Corrigé`),]
+dupes
+write.csv(dupes, 'data_clean/dupes.csv')
+
+# Social
+mean(df$SocialScore) # 0.5763275 (not rounded)        0.5762821 (rounded)  
+mean(df$`Social reintegration score`, na.rm = TRUE) # 0.5662696 (rounded) -> slightly lower
+# Faulty cases
+faulty <- df %>% select(`Code Mimosa Corrigé`, Difference) %>% filter(Difference != 0)
+faulty
+write.csv(faulty, 'data_clean/faulty_cases_social.csv')
 
 
+df$`Social reintegration score`
+
+df[df$`Code Mimosa Corrigé` == 'CH1022X000307', c("Social reintegration score", "SocialScore",
+              "10_housing_dim_score", "11_housing_qual_dim_score", "12_education_dim_score", "20_services_construct_dim_score"
+                                                  )]
 
 # TEMP ########################################################################
+###############################################################################
 
 `XXX_n` =
   recode(`XXX`,
-         "" = ,
-         "" = ,
-         "" = ,
-         "" = ,
-         "" = ,
-         "" = 
+         "" = 1,
+         "" = 0.75,
+         "" = 0.5,
+         "" = 0.25,
+         "" = 0,
+         "" = 0.5
   ),
 
 ##################
@@ -168,6 +561,10 @@ df %>% group_by(`XXX_n`) %>% summarise(Count = n())
 view(df)
 
 ###############################################################################
+###############################################################################
+
+dim(df)
+
 
 
 
@@ -178,27 +575,32 @@ view(rss)
 
 # Notes ####
 
-# (1) NA should normally be coded as 0.5. That said, the French version of RSS
+# (1) This item is actually "1.Satisfation situation economique actuelle", ac-
+# -cording to email of Julie of 12 June 2023.
+
+# (2) NA should normally be coded as 0.5. That said, the French version of RSS
 # is missing an answer option compared to the English version, which is "I don't
 # have debts". Since all of the NAs replied that they do not have debt in the
 # previous question ("4b. Avez-vous actuellement une dette à rembourser?"), it
 # is likely that the NA mean that the respondents do not have debts. If that is
 # the case, they should be coded as 1 following the documentation, which is what
 # was done here.
-# However, we note that 657 who also replied not having debt in question 4b have
-# an answer for question 5, which is odd. I therefore suggest to investigate
-# further how question 5 was coded, since it might contain an anomaly, which might
-# biase the final scores.
+# However, we note that 657 respondents who also replied not having debt in qu-
+# estion 4b have an answer for question 5, which is odd. I therefore suggest to
+# investigate further how question 5 was coded, since it might contain an anomaly,
+# which might biase the final scores.
 
+# (3) 7 respondents stated not to have any assets and having assets at the same
+# time. These were coded as having assets (code = 1).
 
+# (4) This item should be numbered 10, not 11.
 
+# (5) Since French version has 1 more category than English version, we decided
+# to group 'Aucun' (2 answers) and 'Non' (107 answers) as 'None' (code = 0).
 
+# (6) This item should be numbered 21, not 22.
 
-
-
-
-
-
+# (7) This is a confusing answer option.
 
 
 
