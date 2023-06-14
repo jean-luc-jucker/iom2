@@ -1,36 +1,13 @@
-# Main change from v1: we use new cleaned data (received 14 June 2023 from
-# client), and do the merge ourselves.
-
 getwd()
 library(readxl)
 library(tidyverse)
 
 # Reintegration Economic Survey ####
-rss <- read_excel('data_raw/RSS data cleaned to use for analysis V2.xlsx',
-                  na = c('N/A', 'NA', 'na')) 
-dim(rss) # 1,386 x 96
+rss <- read_excel('data_raw/RSS Kobo  - All data set + MimosaV2 bis.xlsx',
+                  na = c('N/A', 'NA', 'na'), skip = 2) 
+warnings()
+dim(rss) # 1,361 x 319
 rss
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 # Subset ######################################################################
 df <- rss %>% 
@@ -41,19 +18,19 @@ df <- rss %>%
     
     # only for checking purposes, to be removed in due time
     "Code Mimosa Corrigé",
-    #"Economic reintegration Score",
-    #"Social reintegration score",
+    "Economic reintegration Score",
+    "Social reintegration score",
 
     # Dependent variables
     # Economic
-    "1. Dans quelle mesure êtes-vous satisfait de votre situation économique actuelle?", # Read Note 1!
+    "Pour quelle raison prévoyez-vous de déménager?...81", # Read Note 1!
     "2. A quelle fréquence avez-vous dû réduire la quantité ou la qualité des aliments que vous mangez en raison de leur coût au cours du mois passe (des 30 derniers jours)?",
     "3. Avez vous la possibilité emprunter de l’argent si vous en avez besoin?\r\n(Perception de la disponibilité du crédit, quelle que soit la source - banque, famille, amis, système de prêts traditionnel, microcrédit, etc. - et peu importe si le répondant prend effectivement des prêts ou non)",
     "4. Empruntez-vous de l’argent? À quelle fréquence?\r\n(Comportement autodéclaré par le répondant, peu importe la source du crédit et le montant – même les très petits montants comptent)",
     "5. En moyenne, quel est le montant le plus élevé : vos dépenses chaque mois ou votre dette",
     "6. Comment évalueriez-vous votre accès aux possibilités (emploi et formation)?",
     "7. Travaillez-vous actuellement?\r\n(Emploi formel ou informel; travail indépendant; propre entreprise ou exploitation agricole. Si l’intimé suit actuellement une formation non rémunérée ou fréquente l’école, sélectionnez « Sans objet ».)",
-    "8. Possédez-vous l’un des actifs productifs suivants?",
+    "8. Possédez-vous l’un des actifs productifs suivants?...114",
     "9. Êtes-vous actuellement à la recherche d’un emploi?",
     # Social
     "11. Comment évalueriez-vous votre accès au logement dans votre collectivité?", # Read Note 4!
@@ -65,7 +42,7 @@ df <- rss %>%
     "17. Comment évalueriez-vous l’accès aux documents (pièce d’identité personnelle, certificats de naissance, etc.) dans votre collectivité?",
     "18. Comment évalueriez-vous l’accès à l’eau potable dans votre collectivité?",
     "19. Comment évalueriez-vous l’accès aux soins de santé dans votre collectivité?",
-    "20. Quelle est la qualité des services de santé auquels vous avez accès?",
+    "20 . Quelle est la qualité des services de santé auquels vous avez accès?",
     # Psycho social
     "22. À quelle fréquence êtes-vous invité ou participez-vous à des activités sociales (célébrations, mariages, autres événements) au sein de votre communauté?", # Read Note 6!
     "23. Que pensez-vous de votre réseau de soutien? Pouvez-vous compter sur le soutien du réseau?\r\n(Réseau de soutien qui peut fournir une aide émotionnelle ou pratique en cas de besoin, peu importe le type factuel, la taille ou la force du soutien)",
@@ -89,7 +66,7 @@ df <- rss %>%
     # Dependent variables
     # Economic
     "1_economic" =
-      "1. Dans quelle mesure êtes-vous satisfait de votre situation économique actuelle?", # Read Note 1!
+      "Pour quelle raison prévoyez-vous de déménager?...81", # Read Note 1!
     "2_food" =
       "2. A quelle fréquence avez-vous dû réduire la quantité ou la qualité des aliments que vous mangez en raison de leur coût au cours du mois passe (des 30 derniers jours)?",
     "3_borrow" =
@@ -103,7 +80,7 @@ df <- rss %>%
     "7_working" = 
       "7. Travaillez-vous actuellement?\r\n(Emploi formel ou informel; travail indépendant; propre entreprise ou exploitation agricole. Si l’intimé suit actuellement une formation non rémunérée ou fréquente l’école, sélectionnez « Sans objet ».)",
     "8_assets" = 
-      "8. Possédez-vous l’un des actifs productifs suivants?",
+      "8. Possédez-vous l’un des actifs productifs suivants?...114",
     "9_searching_job" = 
       "9. Êtes-vous actuellement à la recherche d’un emploi?",
     # Social
@@ -126,7 +103,7 @@ df <- rss %>%
     "18_health" = 
       "19. Comment évalueriez-vous l’accès aux soins de santé dans votre collectivité?",
     "19_health_qual" = 
-      "20. Quelle est la qualité des services de santé auquels vous avez accès?",
+      "20 . Quelle est la qualité des services de santé auquels vous avez accès?",
     # Psycho social
     "21_socialize" = 
       "22. À quelle fréquence êtes-vous invité ou participez-vous à des activités sociales (célébrations, mariages, autres événements) au sein de votre communauté?",
@@ -213,6 +190,7 @@ df <- rss %>%
          `8_assets_n` =
            recode(`8_assets`, # Read Note 3! Warning can be safely ignored
                   "Aucun actif détenu" = 0,
+                  "Je n'ai aucun actif" = 0.5,
                   "Je ne sais pas" = 0.5,
                   "Je souhaite ne pas répondre" = 0.5
            ),
@@ -348,8 +326,7 @@ df <- rss %>%
                   "Je me sens en sécurité la plupart du temps" = 0.75,
                   "Neutre" = 0.5,
                   "Je ne me sens pas en sécurité la plupart du temps" = 0.25,
-                  "Je me sens très en danger tout le temps" = 0,
-                  "Je ne veux pas répondre" = 0.5
+                  "Je me sens très en danger tout le temps" = 0
            ),
          `25_family_conflict_n` =
            recode(`25_family_conflict`,
@@ -542,10 +519,10 @@ df <- rss %>%
          SocialScore = `10_housing_dim_score` + `11_housing_qual_dim_score` + `12_education_dim_score` + `13_school_dim_score` + `14_justice_dim_score` + `15_id_dim_score` + `16_documentation_dim_score` + `17_water_dim_score` + `18_health_dim_score` + `19_health_qual_dim_score` + `20_services_construct_dim_score`,
          # Psycho social
            
-           )# %>% 
+           ) %>% 
   
   # only for checking purposes, to be removed in due time
-  #mutate(Difference = SocialScore - `Social reintegration score`)
+  mutate(Difference = SocialScore - `Social reintegration score`)
   
 # Warnings
 # (1) Problem while computing `8_assets_n = recode(...)`. Can be safely ignored,
@@ -559,9 +536,9 @@ df <- rss %>%
 
 names(rss)
 
-rss %>% group_by(`8. Possédez-vous l’un des actifs productifs suivants?`) %>% summarise(Count = n())
+rss %>% group_by(`30 . Sentez-vous que vous êtes en mesure de rester et de vivre dans ce pays?`) %>% summarise(Count = n())
 
-df %>% group_by(`8_assets_n`) %>% summarise(Count = n())
+df %>% group_by(`XXX_n`) %>% summarise(Count = n())
 view(df)
 
 
@@ -657,7 +634,7 @@ view(rss)
 # investigate further how question 5 was coded, since it might contain an anomaly,
 # which might biase the final scores.
 
-# (3) 8 respondents stated not to have any assets and having assets at the same
+# (3) 7 respondents stated not to have any assets and having assets at the same
 # time. These were coded as having assets (code = 1).
 
 # (4) This item should be numbered 10, not 11.
