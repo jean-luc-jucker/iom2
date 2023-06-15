@@ -15,6 +15,8 @@ df <- res %>%
     "Identifiant MiMOSA du cas bis",
     "Projet Bis",
     "Date de l'enquête",
+    "Date de reception de la reintegration", # We choose this one since it has less NA
+    # than Date of beginning of training
     "Mode d'enquête",
     # Dependent variables
     "Comment se porte votre entreprise ou business actuellement ?",
@@ -37,11 +39,11 @@ df <- res %>%
     "Type de business bis",
     "Qui sont les membres de cette entreprise ?",
     "Niveau microbusiness",
-    "Quelle est la valeur totale de votre aide ?",
     "L'OIM   ou un de ses partenaires vous a-t-elle formé sur la façon de gérer une entreprise ?",
     "L’entreprise emploie-t-elle du personnel ?",
     "Si oui, combien des personnes sont employées par votre entreprise ?",
-    "Est-ce votre entreprise a été affectée par la maladie de Coronavirus ?"
+    "Est-ce votre entreprise a été affectée par la maladie de Coronavirus ?",
+    "Est-ce que le type d'assistance économique que vous avez reçu correspondait à votre premier choix ?"
     
     ) %>% 
   rename(
@@ -52,6 +54,8 @@ df <- res %>%
       "Projet Bis",
     "InterviewDate" =
       "Date de l'enquête",
+    "ReintegrationDate" = 
+      "Date de reception de la reintegration",
     "InterviewType" =
       "Mode d'enquête",
     # Dependent variables
@@ -94,8 +98,6 @@ df <- res %>%
       "Qui sont les membres de cette entreprise ?",
     "MicroBusinessLevel" =
       "Niveau microbusiness",
-    "SupportTotalValue" = 
-      "Quelle est la valeur totale de votre aide ?",
     "ReceivedIOMBusinessAdvice" =
       "L'OIM   ou un de ses partenaires vous a-t-elle formé sur la façon de gérer une entreprise ?",
     "BusinessHasEmployees" =
@@ -103,14 +105,21 @@ df <- res %>%
     "EmployeeNumber" =
       "Si oui, combien des personnes sont employées par votre entreprise ?",
     "CoronaImpactOnBusiness" =
-      "Est-ce votre entreprise a été affectée par la maladie de Coronavirus ?"
+      "Est-ce votre entreprise a été affectée par la maladie de Coronavirus ?",
+    "FirstChoice" = 
+      "Est-ce que le type d'assistance économique que vous avez reçu correspondait à votre premier choix ?"
     
-         )
+         ) %>% 
+  # Add variables
+  mutate(SupportDuration = 
+          difftime(InterviewDate, ReintegrationDate, units = "days"))
 
 df
 
 # NA
 colSums(is.na(df))
+
+# Dupes
 
 # Data types
 str(df)
@@ -118,8 +127,10 @@ str(df)
 # Character to Numeric
 df$MigrationDuration <- as.numeric(df$MigrationDuration)
 df$TimeToReceiveSupport <- as.numeric(df$TimeToReceiveSupport)
-df$SupportTotalValue <- as.numeric(df$SupportTotalValue)
+df$SupportDuration  <- as.numeric(df$SupportDuration)
 
+
+# Remove non-SL countries!!! (in pipe)
 
 # Export
 write_excel_csv(df, 'data_clean/res_slim.csv') # using extension .xls will avoid
@@ -134,6 +145,7 @@ saveRDS(df, file = 'data_clean/res_slim.rds')
 df <- readRDS('data_clean/res_slim.rds')%>% 
   mutate(across(where(is.character), as.factor))
 dim(df)
+view(df)
 
 # Discard unplottable variables
 df <- df %>% select(-c(MimosaID, InterviewDate))

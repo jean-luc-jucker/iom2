@@ -5,29 +5,72 @@ getwd()
 library(readxl)
 library(tidyverse)
 
-# Reintegration Economic Survey ####
-rss <- read_excel('data_raw/RSS data cleaned to use for analysis V2.xlsx',
+# Reintegration Economic Survey (kobo) ####
+kobo <- read_excel('data_raw/RSS data cleaned to use for analysis V2.xlsx',
                   na = c('N/A', 'NA', 'na')) 
-dim(rss) # 1,386 x 96
-rss
+dim(kobo) # 1,386 x 96
+# Previous database: 1,361 x 319 (25 more)
+
+# Mimosa data (mimosa)
+mimosa <- read_excel('data_raw/Mimosa data - Reintegration Cases M&E RSS June 2023.xlsx',
+                     na = c('N/A', 'NA', 'na'))
+dim(mimosa) # 2,536 x 57
+
+
+# Dupes
+# First note, there were 1 perfect duplicate and 82 duplicated ID (`Code Mimosa Corrigé`)
+# in previous file
+sum(duplicated(kobo)) # 1
+sum(duplicated(kobo$`Code Mimosa Corrigé`)) # 108
+sum(duplicated(kobo$`Identifiant MiMOSA du cas`)) # 75
+
+dupes <- kobo[duplicated(kobo$`Code Mimosa Corrigé`), "Code Mimosa Corrigé"]
+write.csv(dupes, 'data_clean/final_dupes.csv')
+
+sum(duplicated(mimosa)) # 0
+
+
+# Subset
+kobo_slim <- kobo %>% select(`Code Mimosa Corrigé`, `Identifiant MiMOSA du cas`)
+mimosa_slim <- mimosa %>% select(`CaseNo/IndividualNo`, CaseNo, MemberNo)
+
+# Compare variable intersect
+# Using Code Mimosa Corrigé as reference
+# Common IDs between Code Mimosa Corrigé and CaseNo/IndividualNo
+length(intersect(kobo_slim$`Code Mimosa Corrigé`, mimosa_slim$`CaseNo/IndividualNo`)) # 1,189
+# Common IDs between Code Mimosa Corrigé and CaseNo
+length(intersect(kobo_slim$`Code Mimosa Corrigé`, mimosa_slim$CaseNo)) # 881
+# Common IDs between Code Mimosa Corrigé and MemberNo
+length(intersect(kobo_slim$`Code Mimosa Corrigé`, mimosa_slim$MemberNo)) # 308  NOTE, 881 + 308 = 1,189
+# Using Identifiant MiMOSA Corrigé as reference (smaller intersect)
+# Common IDs between Identifiant MiMOSA du cas and CaseNo/IndividualNo
+#length(intersect(kobo_slim$`Identifiant MiMOSA du cas`, mimosa_slim$`CaseNo/IndividualNo`)) # 1,110
+# Common IDs between Identifiant MiMOSA du cas and CaseNo
+#length(intersect(kobo_slim$`Identifiant MiMOSA du cas`, mimosa_slim$CaseNo)) # 820
+# Common IDs between Identifiant MiMOSA du cas and MemberNo
+#length(intersect(kobo_slim$`Identifiant MiMOSA du cas`, mimosa_slim$MemberNo)) # 290  NOTE, 820 + 290 = 1,110
+
+# Previous real sample size
+# 1361 - 81 = 1,280
+
+# Current sample size
+# 1,189
+# Difference: 1,280 - 1,189 = 91 missing compared to previous version
+
+
+# 1,189 - 1,110 = 79 (would mean a final difference of 91 - 79 = 12)
+
+
+# 
 
 
 
+# subset
+# merge
+# compute scores
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# merge
+# subset, rename, compute scores
 
 
 
