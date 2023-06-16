@@ -684,65 +684,92 @@ mutate(CompositeScore = `1_economic_comp_score` + `2_food_comp_score` + `3_borro
 # since NA are replaced following it, on purpose.
 
 # export
-write.csv(kobo_slim, 'data_clean/df_clean_temp_29_30.csv')
-
-kobo_slim
+#write.csv(kobo_slim, 'data_clean/df_clean_temp_29_30.csv')
 
 
-#####################################################################
 
-names(kobo)
-
-kobo %>% group_by(`30. Sentez-vous que vous êtes en mesure de rester et de vivre dans ce pays?`) %>% summarise(Count = n())
-kobo %>% group_by(`31. Qu’est-ce qui vous fait ressentir cela?`) %>% summarise(Count = n())
-
-
-kobo_slim %>% group_by(`29_able_to_stay_n`) %>% summarise(Count = n())
-kobo_slim %>% group_by(`30_wish_vs_need_leave_n`) %>% summarise(Count = n())
-kobo_slim %>% group_by(`29_30_remigration_construct`) %>% summarise(Count = n())
-view(kobo_slim)
-
-
-# TEMP ########################################################################
+# TEMPLATE ########################################################################
 ###############################################################################
 
-`XXX_n` =
-  recode(`XXX`,
-         "" = 1,
-         "" = 0.75,
-         "" = 0.5,
-         "" = 0.25,
-         "" = 0,
-         "" = 0.5
-  ),
+#`XXX_n` =
+#  recode(`XXX`,
+#         "" = 1,
+#         "" = 0.75,
+#         "" = 0.5,
+#         "" = 0.25,
+#         "" = 0,
+#         "" = 0.5
+#  ),
 
 ##################
 
-`XXX_dim_weight` = ,
-`XXX_comp_weight` = ,
+#`XXX_dim_weight` = ,
+#`XXX_comp_weight` = ,
 
 ##################
 
-`XXX_dim_score` = `XXX_n` * `XXX_dim_weight`,
-`XXX_comp_score` = `XXX_n` * `XXX_comp_weight`,
+#`XXX_dim_score` = `XXX_n` * `XXX_dim_weight`,
+#`XXX_comp_score` = `XXX_n` * `XXX_comp_weight`,
 
 ############
 
-names(kobo)
+#names(kobo)
 
-kobo %>% group_by(`FULLQUESTIONNAME`) %>% summarise(Count = n())
+#kobo %>% group_by(`FULLQUESTIONNAME`) %>% summarise(Count = n())
 
-kobo_slim %>% group_by(`XXX_n`) %>% summarise(Count = n())
-view(kobo_slim)
-
-###############################################################################
-###############################################################################
-
-
-
+#kobo_slim %>% group_by(`XXX_n`) %>% summarise(Count = n())
+#view(kobo_slim)
 
 ###############################################################################
 ###############################################################################
+
+# 3. MERGE ####
+
+# Objects dimensions
+dim(mimosa_slim) # 2,580 x  28
+dim(kobo_slim)   # 1,385 x 187
+
+# Target dimension
+# 1,385 x 214
+
+
+sum(duplicated(mimosa$`CaseNo/IndividualNo`)) # 13
+sum(duplicated(mimosa_slim$ID))  # 13
+
+mimosa_slim[duplicated(mimosa_slim$ID), 'ID']
+
+# We'll do a right join, keeping all rows from kobo_slim
+rss <- merge(mimosa_slim, kobo_slim, by='ID', all.y = TRUE)
+
+# Dimensions
+dim(rss) # 1,385 x 214 --> as expected
+
+# Check perfect duplicates
+sum(duplicated(rss)) # 0
+# Check pseudo-duplicates
+sum(duplicated(rss$ID)) # 128
+
+
+rss[duplicated(rss$ID), "ID"]
+
+#write_excel_csv(rss, 'data_clean/rss.csv')
+
+# Compute last needed variable
+rss  <- rss %>% mutate(MBAssistanceDuration = 
+                 as.numeric(difftime(interview_date, MicrobusinessEndDate, units = "days")))
+
+
+write_excel_csv(rss, 'data_clean/rss.csv')
+
+
+
+
+
+
+
+
+
+
 
 
 
