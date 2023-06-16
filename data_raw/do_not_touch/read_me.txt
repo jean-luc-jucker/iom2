@@ -27,7 +27,7 @@ it was dropped for the following versions.
 (3)
 From here, we have 2 files (i.e., the files before merging), i.e.,
 one from MIMOSA, and one from KOBO
-### Mimosa data - Reintegration Cases M&E RSS June 2023.xlsx ### ******************
+### Mimosa data - Reintegration Cases M&E RSS June 2023.xlsx ###
 Received 13 June 2023
 This is the MIMOSA data (file 1). It is used for merge in preparation_rss.R (all
 versions after preparation_rss_v1.R)
@@ -36,8 +36,15 @@ Received 13 June 2023
 This is the KOBO data (file 2). It is no longer used.
 
 (4)
-### RSS data cleaned to use for analysis V2.xlsx ### ******************
+### RSS data cleaned to use for analysis V2.xlsx ###
 Received 14 June 2023
 This is the same KOBO data (file 2) as in v3, but with 1 variable added.
 It is used for merge in preparation_rss.R (all versions after preparation_rss_v1.R)
 
+(5)
+### Reintegration Cases M&E RSS June 2023 (liste complète).xlsx ### ******************
+Received 15 June 2023
+This is the same MIMOSA data as in v3 (file 1), but with slightly more observations.
+### RSS data cleaned to use for analysis V3 doublons corriges.xlsx ### ******************
+Received 15 June 2023
+This is the same KOBO data (file 2) as in v4, but with duplicates and other errors removed.
