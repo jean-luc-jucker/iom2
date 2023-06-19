@@ -33,6 +33,8 @@ df <- res %>%
     "Durée de l’absence du pays d’origine   Mettre 0 si moins d'un an",
     "Situation de handicap",
     "Type de formation",
+    "Date de debut formation",
+    "Date de fin formation",
     "Combien de temps entre votre retour et la réception de l’aide à la réintégration (ou sa première fourniture) ? En semaines",
     "Par quel moyen avez-vous reçu cette assistance économique ?",
     "Quel est le principal type d’assistance économique que vous avez reçue ?",
@@ -86,6 +88,10 @@ df <- res %>%
       "Situation de handicap",
     "TrainingType" =
       "Type de formation",
+    "TrainingStart" = 
+      "Date de debut formation",
+    "TrainingEnd" = 
+      "Date de fin formation",
     "TimeToReceiveSupport" =
       "Combien de temps entre votre retour et la réception de l’aide à la réintégration (ou sa première fourniture) ? En semaines",
     "ReceivedSupportAs" =
@@ -112,14 +118,33 @@ df <- res %>%
          ) %>% 
   # Add variables
   mutate(SupportDuration = 
-          difftime(InterviewDate, ReintegrationDate, units = "days"))
+          as.numeric(difftime(InterviewDate, ReintegrationDate, units = "days")),
+         TrainingDuration = 
+           as.numeric(difftime(TrainingEnd, TrainingStart, units = "days"))
+         ) %>% 
+  # Filter out NL countries (Togo = 8, Sierra-Leone = 45)
+  filter(Country != 'Togo' & Country != 'Sierra-Leone')
 
-df
+dim(df) # 1959 x 33
+#view(df)
 
 # NA
 colSums(is.na(df))
 
 # Dupes
+
+# Perfect
+sum(duplicated(df)) # 2
+df[duplicated(df) | duplicated(df, fromLast = TRUE), ]
+# Remove
+df  <- distinct(df)
+dim(df) # 1957 x 33
+
+# Pseudo
+sum(duplicated(df$MimosaID)) # 77
+df[duplicated(df$MimosaID), 'MimosaID']
+
+#write.csv(df[duplicated(df$MimosaID), 'MimosaID'], 'data_clean/res_pseudo_dupes.csv')
 
 # Data types
 str(df)
@@ -130,262 +155,308 @@ df$TimeToReceiveSupport <- as.numeric(df$TimeToReceiveSupport)
 df$SupportDuration  <- as.numeric(df$SupportDuration)
 
 
-# Remove non-SL countries!!! (in pipe)
-
-# Export
-write_excel_csv(df, 'data_clean/res_slim.csv') # using extension .xls will avoid
-# wrapping, but will produce unsafe warning, so we use .csv
-# RDS version
-saveRDS(df, file = 'data_clean/res_slim.rds')
-
-# Base exploration
+# Remove non-SL countries!!! (in pipe) Togo, Sierra Leone, Liberia
 
 
-# Load res object as df, and convert strings to factors
-df <- readRDS('data_clean/res_slim.rds')%>% 
-  mutate(across(where(is.character), as.factor))
-dim(df)
-view(df)
+# Recode dependent variables
 
-# Discard unplottable variables
-df <- df %>% select(-c(MimosaID, InterviewDate))
-dim(df)
-
-# 1. Overall ##################################################################
-
-# Set iteration counter to 0. This is needed only for numbering the output .png
-# plots. This needs to be an external variable.
-counter <- 0
-
-# Function
-make_plots_overall <- function(df){ # fun start
-  
-  for (col in colnames(df)){ # for-loop start
-    
-    # (1) Some variables we'll need
-    # Count of non-na rows; needed for plot title
-    N <- sum(!is.na(df[col]))
-    # Count of missing observations; needed for plot title
-    Missing <- sum(is.na(df[col]))
-    # Number of levels for each factor; needed for saving plots in correct aspect
-    # ratio
-    n_levels <- dim(unique(df[col]))[1]
-    # Update counter; needed for plot numbering
-    counter <- counter + 1
-    
-    # Skip items with 0 observations
-    # This is crucial to avoid error when wrapping long level names (these cannot
-    # be wrapped in there are none)
-    if (N == 0) next
-    
-    # (2) UNORDERED FACTORS
-    if (is.factor(df[[col]]) & !is.ordered(df[[col]])) { # if-else start
-      # We remove NA here; also note we use sym(), needed mainly to reorder the
-      # bars in a loop; also note, fct_rev() is necessary to revert fct_infreq()
-      p <- ggplot(data = df[col] %>% filter(!is.na(df[col])),
-                  aes(x=fct_rev(fct_infreq(!!sym(col)))))
-      # Compute percents for bars
-      p <- p + geom_bar(aes(y = (..count..)/sum(..count..)), width = 0.5,
-                        fill = 'black')
-      if (N<100){
-        # Low N warning
-        p <- p + labs(title = paste(col, '| Overall'),
-                      subtitle = paste0('Single-select | ', 'N = ', format(N, big.mark = ',')
-                                        , ', interpret with caution!'
-                      ))
-      } else {
-        # No warning
-        p <- p + labs(title = paste(col, '| Overall'),
-                      subtitle = paste0('Single-select | ', 'N = ', format(N, big.mark = ',')
-                      ))
-      }
-      # Aesthetics
-      # Wrap long level names
-      p <- p + scale_x_discrete(labels = function(x) str_wrap(x, width = 30))
-      # Add percents as annotations; note, rounding percents using round() be-
-      # haves oddly, and it is much better to use accuracy = 0.1L
-      p <- p + geom_text(aes(label = scales::percent((..count..)/sum(..count..),
-                                                     accuracy = 0.1L),
-                             y = ((..count..)/sum(..count..))), stat="count",
-                         hjust = -0.1, size=4)
-      # Aesthetics
-      p <- p + theme_minimal()
-      p <- p + theme(axis.title.y = element_blank(),
-                     axis.title.x = element_blank(),
-                     axis.text.x = element_blank(),
-                     axis.text.y = element_text(colour='black', size = 12),
-                     plot.margin = margin(r=25, l=1, b=0, t=1),
-                     plot.title = element_text(size = 16),
-                     plot.subtitle = element_text(size = 12),
-                     panel.grid = element_blank())
-      # Flip coordinates; note, this is needed only to accommodate the percent an-
-      # notation, in combination with plot.margin(); without annotations, we might
-      # have simply reversed x and y everywhere to get exact same result
-      p <- p + coord_flip(clip = 'off')
-      # # Print
-      print(p)
-      # Save as png; note n_levels*1.3+1 nicely accommodates most variables for a
-      # MS Word output; note we decided to number files just to preserve df order
-      # instead of alphabetical order
-      if (n_levels<15) {
-        ggsave(paste(counter, '_', col, '.png'), path = 'plots/single_select/overall',
-               width = 16.5,
-               height = n_levels * 1.3 + 1, units = 'cm')
-        # If factor has more than 13 levels, it is better to use this proportion
-      } else {
-        ggsave(paste(counter, '_', col, '.png'), path = 'plots/single_select/overall',
-               width = 16.5,
-               height = n_levels * 0.9, units = 'cm')  
-      }
-      
-      # (3) ORDERED FACTORS
-    } else if (is.factor(df[[col]]) & is.ordered(df[[col]])){
-      # We remove NA here; also note we use sym(), needed mainly to reorder the
-      # bars in a loop; also note, fct_rev() is necessary to revert fct_infreq()
-      p <- ggplot(data = df[col] %>% filter(!is.na(df[col])),
-                  aes(x=!!sym(col)))
-      # Compute percents for bars
-      p <- p + geom_bar(aes(y = (..count..)/sum(..count..)), width = 0.5,
-                        fill = 'black')
-      if (N<100){
-        # Low N warning
-        p <- p + labs(title = paste(col, '| Overall'),
-                      subtitle = paste0('Single-select | ', 'N = ', format(N, big.mark = ','),
-                                        ', interpret with caution!'
-                      ))
-      } else {
-        # No warning
-        p <- p + labs(title = paste(col, '| Overall'),
-                      subtitle = paste0('Single-select | ', 'N = ', format(N, big.mark = ',')
-                      ))
-      }
-      # Aesthetics
-      # Wrap long level names
-      p <- p + scale_x_discrete(labels = function(x) str_wrap(x, width = 30))
-      # Add percents as annotations; note, rounding percents using round() be-
-      # haves oddly, and it is much better to use accuracy = 0.1L
-      p <- p + geom_text(aes(label = scales::percent((..count..)/sum(..count..),
-                                                     accuracy = 0.1L),
-                             y = ((..count..)/sum(..count..))), stat="count",
-                         hjust = -0.1, size=4)
-      # Aesthetics
-      p <- p + theme_minimal()
-      p <- p + theme(axis.title.y = element_blank(),
-                     axis.title.x = element_blank(),
-                     axis.text.x = element_blank(),
-                     axis.text.y = element_text(colour='black', size = 12),
-                     plot.margin = margin(r=25, l=1, b=0, t=1),
-                     plot.title = element_text(size = 16),
-                     plot.subtitle = element_text(size = 12),
-                     panel.grid = element_blank())
-      # Flip coordinates; note, this is needed only to accommodate the percent an-
-      # notation, in combination with plot.margin(); without annotations, we might
-      # have simply reversed x and y everywhere to get exact same result
-      p <- p + coord_flip(clip = 'off')
-      # # Print
-      print(p)
-      # Save as png; note n_levels*1.3+1 nicely accommodates most variables for a
-      # MS Word output; note we decided to number files just to preserve df order
-      # instead of alphabetical order
-      if (n_levels<15) {
-        ggsave(paste(counter, '_', col, '.png'), path = 'plots/single_select/overall',
-               width = 16.5,
-               height = n_levels * 1.3 + 1, units = 'cm')
-        # If factor has more than 13 levels, it is better to use this proportion
-      } else {
-        ggsave(paste(counter, '_', col, '.png'), path = 'plots/single_select/overall',
-               width = 16.5,
-               height = n_levels * 0.9, units = 'cm')  
-      }
-      
-      # (4) NUMERIC
-    } else if (is.numeric(df[[col]])) {
-      # Plot
-      p <- ggplot(data = df, aes(y = !!sym(col), x=""))
-      p <- p + geom_jitter(width = 0.2, alpha=0.8, size=0.6)
-      p <- p +  geom_boxplot(alpha=0.9, fill='transparent')
-      #p <- p + scale_y_continuous(breaks = round(seq(min(df[[col]]), max(df[[col]]), by = 10),1))
-      # PUT above line once data are clean! Currently AmountSpent is infinite
-      p <- p + coord_flip()
-      
-      if (N<100){
-        # Low N warning
-        p <- p + labs(title = paste(col, '| Overall'),
-                      subtitle = paste0('Single-select | ', 'N = ', format(N, big.mark = ','),
-                                        ', interpret with caution!' 
-                      ))
-      } else {
-        # No warning
-        p <- p + labs(title = paste(col, '| Overall'),
-                      subtitle = paste0('Single-select | ', 'N = ', format(N, big.mark = ',')
-                      ))
-      }
-      
-      # Aesthetics
-      p <- p + theme_minimal()
-      p <- p + theme(axis.title.y = element_blank(),
-                     axis.text.y = element_text(colour='black', size = 12),
-                     axis.text.x = element_text(colour='black', size = 12),
-                     axis.title.x = element_text(colour='black', size = 12),
-                     legend.position = 'none',
-                     #plot.margin = margin(r=25, l=1, b=0, t=1),
-                     plot.title = element_text(size = 16),
-                     plot.subtitle = element_text(size = 12),
-                     panel.grid = element_blank())
-      # Print
-      print(p)
-      
-      # Export
-      ggsave(paste(counter, '_', col, '.png'), path = 'plots/single_select/overall', 
-             width = 16.5,
-             height = 5, units = 'cm') # initially *1.3 
-      
-      # (5) OTHER
-    } else { # reput to above line
-      print(paste('Column', col, 'is a character; not plotted'))
-    } # if-else end
-  } # for-loop end
-  
-} # fun end
-
-# Implement on full data
-make_plots_overall(df)
-# Implement on custom data
-#make_plots_overall(df[df$City=='', ]) 
-
-# Recode
+# Print levels
 levels(as.factor(df$BusinessSucess))
 levels(as.factor(df$BusinessProfitability))
+levels(as.factor(df$WouldMigrateAgain))
 
-model1 <- df %>% mutate(
+# Print counts
+df %>% group_by(BusinessSucess) %>% summarise(count = n()) %>%
+  mutate(percent = count/sum(count)*100) %>% arrange(-percent)
+df %>% group_by(BusinessProfitability) %>% summarise(count = n()) %>%
+  mutate(percent = count/sum(count)*100) %>% arrange(-percent)
+df %>% group_by(WouldMigrateAgain) %>% summarise(count = n()) %>%
+  mutate(percent = count/sum(count)*100) %>% arrange(-percent)
+
+df <- df %>% mutate(
   BusinessSucess =
     case_when(BusinessSucess == 'Actuellement ouvert et les activités marchent bien' ~ 'High',
               BusinessSucess != 'Actuellement ouvert et les activités marchent bien' ~ 'Low'),
   BusinessProfitability =
     case_when(BusinessProfitability == 'Oui' ~ 'High',
-              BusinessProfitability != 'Oui' ~ 'Low',)
+              BusinessProfitability != 'Oui' ~ 'Low'),
+  WouldMigrateAgain = 
+    case_when(WouldMigrateAgain == 'Non' ~ 'No',
+              WouldMigrateAgain != 'Non' ~ 'Yes')
 )
 
-levels(as.factor(model1$BusinessSucess))
-levels(as.factor(model1$BusinessProfitability))
 
+
+# Reprint counts
+df %>% group_by(BusinessSucess) %>% summarise(count = n()) %>%
+  mutate(percent = count/sum(count)*100) %>% arrange(-percent)
+df %>% group_by(BusinessProfitability) %>% summarise(count = n()) %>%
+  mutate(percent = count/sum(count)*100) %>% arrange(-percent)
+df %>% group_by(WouldMigrateAgain) %>% summarise(count = n()) %>%
+  mutate(percent = count/sum(count)*100) %>% arrange(-percent)
+
+
+
+
+# Assess NA
 colSums(is.na(df))
 
+
+
+
+# Outliers; fill NA in numeric variables
+
+# MigrationDuration
+# Definition: "Durée de l’absence du pays d’origine   Mettre 0 si moins d'un an"
+# In years
+# NA
+sum(is.na(df$MigrationDuration)) # 111
+
+# Summarise
+summary(df$MigrationDuration)
+# Check no observations are below or 0
+df[df$MigrationDuration <= 0, "MigrationDuration"] %>% arrange(MigrationDuration) # 543! ask Julie
+
+
+# First, we'll replace these 3 values, which are mistakes and not outliers,
+# with NA
+df[order(df$MigrationDuration, decreasing=TRUE), 'MigrationDuration'][0:3,]
+df[df$MigrationDuration >= 936 & !is.na(df$MigrationDuration), 'MigrationDuration']  <- NA
+sum(is.na(df$MigrationDuration)) # 114 --> as expected
+# Let's re-summarise
+summary(df$MigrationDuration)
+# And let's store the median
+q_median <- median(df$MigrationDuration, na.rm = TRUE)
+q_median # 2 years
+
+
+# Make a boxplot (IQR)
+
+# Boxplot has a function to detect outliers
+outliers <- boxplot.stats(df$MigrationDuration)$out
+out_ind <- which(df$MigrationDuration %in% c(outliers))
+out_ind
+
+# Print outliers
+df[out_ind, "MigrationDuration"] %>% arrange(MigrationDuration) # 130, with
+# smallest being 7 years
+
+# Plot outliers
+boxplot(df$MigrationDuration,
+        ylab = "Years",
+        main = "MigrationDuration"
+)
+
+# Spot outliers using percentile method, with conservative threshold of 0.01/0.99
+lower_bound <- quantile(df$MigrationDuration, 0.01, na.rm = TRUE)
+upper_bound <- quantile(df$MigrationDuration, 0.99, na.rm = TRUE)
+outlier_ind <- which(df$MigrationDuration < lower_bound | df$MigrationDuration > upper_bound)
+df[outlier_ind, "MigrationDuration"] %>% arrange(MigrationDuration) # 18, with
+# smallest being 15 years
+
+
+# Replace 18 extreme outliers with median
+df[outlier_ind, "MigrationDuration"] <- q_median
+
+# Re-summarise
+summary(df$MigrationDuration) # median still 2, max 14 years as expected
+# Replot
+outliers <- boxplot.stats(df$MigrationDuration)$out
+out_ind <- which(df$MigrationDuration %in% c(outliers))
+boxplot(df$MigrationDuration,
+        ylab = "Years",
+        main = "MigrationDuration"
+)
+# It is looking better
+# We should still have the same number of NA
+sum(is.na(df$MigrationDuration)) # 114 --> as expected
+# And we will also replace them with the median
+df[is.na(df$MigrationDuration), "MigrationDuration"] <- q_median
+# Final summary and plot
+summary(df$MigrationDuration) # median still 2, max still 14 years
+outliers <- boxplot.stats(df$MigrationDuration)$out
+out_ind <- which(df$MigrationDuration %in% c(outliers))
+boxplot(df$MigrationDuration,
+        ylab = "Years",
+        main = "MigrationDuration"
+)
+# As above
+# Check no NA are remaining
+sum(is.na(df$MigrationDuration)) # 0, all good
+
+
+
+
+
+# TimeToReceiveSupport
+# Definition: "Combien de temps entre votre retour et la réception de l’aide à
+# la réintégration (ou sa première fourniture) ? En semaines"
+# In weeks
+# NA
+sum(is.na(df$TimeToReceiveSupport)) # 206
+
+# Summarise
+summary(df$TimeToReceiveSupport)
+# Check no observations are below or 0
+df[df$TimeToReceiveSupport <= 0, "TimeToReceiveSupport"] %>% arrange(TimeToReceiveSupport) # 216! ask Julie
+
+
+# Let's store the median
+q_median <- median(df$TimeToReceiveSupport, na.rm = TRUE)
+q_median # 16 weeks
+
+
+# Make a boxplot (IQR)
+
+# Boxplot has a function to detect outliers
+outliers <- boxplot.stats(df$TimeToReceiveSupport)$out
+out_ind <- which(df$TimeToReceiveSupport %in% c(outliers))
+out_ind
+
+# Print outliers
+df[out_ind, "TimeToReceiveSupport"] %>% arrange(TimeToReceiveSupport) # 215, with
+# smallest being 80 weeks
+
+# Plot outliers
+boxplot(df$TimeToReceiveSupport,
+        ylab = "Weeks",
+        main = "TimeToReceiveSupport"
+)
+
+# Spot outliers using percentile method, with conservative threshold of 0.01/0.99
+lower_bound <- quantile(df$TimeToReceiveSupport, 0.01, na.rm = TRUE)
+upper_bound <- quantile(df$TimeToReceiveSupport, 0.99, na.rm = TRUE)
+outlier_ind <- which(df$TimeToReceiveSupport < lower_bound | df$TimeToReceiveSupport > upper_bound)
+df[outlier_ind, "TimeToReceiveSupport"] %>% arrange(TimeToReceiveSupport) %>% print(n=34) # 34, with
+# smallest being 0 weeks (lower) or 180 (upper)
+
+
+# Replace 34 extreme outliers with median
+df[outlier_ind, "TimeToReceiveSupport"] <- q_median
+
+# Re-summarise
+summary(df$TimeToReceiveSupport) # median still 16, max 176 weeks as expected
+# Replot
+outliers <- boxplot.stats(df$TimeToReceiveSupport)$out
+out_ind <- which(df$TimeToReceiveSupport %in% c(outliers))
+boxplot(df$TimeToReceiveSupport,
+        ylab = "Weeks",
+        main = "TimeToReceiveSupport"
+)
+# It is looking better
+# We should still have the same number of NA
+sum(is.na(df$TimeToReceiveSupport)) # 206 --> as expected
+# And we will also replace them with the median
+df[is.na(df$TimeToReceiveSupport), "TimeToReceiveSupport"] <- q_median
+# Final summary and plot
+summary(df$TimeToReceiveSupport) # median still 16, max still 176 weeks years
+outliers <- boxplot.stats(df$TimeToReceiveSupport)$out
+out_ind <- which(df$TimeToReceiveSupport %in% c(outliers))
+boxplot(df$TimeToReceiveSupport,
+        ylab = "Weeks",
+        main = "TimeToReceiveSupport"
+)
+# As above
+# Check no NA are remaining
+sum(is.na(df$TimeToReceiveSupport)) # 0, all good
+
+
+
+
+
+
+
+
+
+# SupportDuration
+# Definition: SupportDuration = as.numeric(difftime(InterviewDate,
+# ReintegrationDate, units = "days"
+# In days
+# NA
+sum(is.na(df$SupportDuration)) # 259
+
+# Summarise
+summary(df$SupportDuration)
+# Show smallest numbers, since some are negative
+df[df$SupportDuration <= 0, "SupportDuration"] %>% arrange(SupportDuration) # 332! Ask Julie
+
+# Continue here
+
+# Let's store the median
+q_median <- median(df$SupportDuration, na.rm = TRUE)
+q_median # 113 days
+
+
+# Make a boxplot (IQR)
+
+# Boxplot has a function to detect outliers
+outliers <- boxplot.stats(df$SupportDuration)$out
+out_ind <- which(df$SupportDuration %in% c(outliers))
+out_ind
+
+# Print outliers
+df[out_ind, "SupportDuration"] %>% arrange(SupportDuration) # 209, with
+# smallest being -270 days (lower) or 540 days (upper)
+
+# Plot outliers
+boxplot(df$SupportDuration,
+        ylab = "Days",
+        main = "SupportDuration"
+)
+
+# Spot outliers using percentile method, with conservative threshold of 0.01/0.99
+lower_bound <- quantile(df$SupportDuration, 0.01, na.rm = TRUE)
+upper_bound <- quantile(df$SupportDuration, 0.99, na.rm = TRUE)
+outlier_ind <- which(df$SupportDuration < lower_bound | df$SupportDuration > upper_bound)
+df[outlier_ind, "SupportDuration"] %>% arrange(SupportDuration) %>% print(n=34) # 34, with
+# smallest being 0 weeks (lower) or 180 (upper)
+
+
+# Replace 34 extreme outliers with median
+df[outlier_ind, "SupportDuration"] <- q_median
+
+# Re-summarise
+summary(df$SupportDuration) # median still 16, max 176 weeks as expected
+# Replot
+outliers <- boxplot.stats(df$SupportDuration)$out
+out_ind <- which(df$SupportDuration %in% c(outliers))
+boxplot(df$SupportDuration,
+        ylab = "Days",
+        main = "SupportDuration"
+)
+# It is looking better
+# We should still have the same number of NA
+sum(is.na(df$SupportDuration)) # 206 --> as expected
+# And we will also replace them with the median
+df[is.na(df$SupportDuration), "SupportDuration"] <- q_median
+# Final summary and plot
+summary(df$SupportDuration) # median still 16, max still 176 weeks years
+outliers <- boxplot.stats(df$SupportDuration)$out
+out_ind <- which(df$SupportDuration %in% c(outliers))
+boxplot(df$SupportDuration,
+        ylab = "Days",
+        main = "SupportDuration"
+)
+# As above
+# Check no NA are remaining
+sum(is.na(df$SupportDuration)) # 0, all good
+
+
+
+
+
+
+
+
+
+
+
+
 # Export
-write_excel_csv(model1, 'jamovi/model1.csv')
-
-
-
-
-
-
-
-
-
-
-
-
-
+#write_excel_csv(df, 'data_clean/res_slim.csv') # using extension .xls will avoid
+# wrapping, but will produce unsafe warning, so we use .csv
+# RDS version
+#saveRDS(df, file = 'data_clean/res_slim.rds')
 
 
 
