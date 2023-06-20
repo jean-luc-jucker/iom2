@@ -1,18 +1,25 @@
 current version = ******************
 
 RES
-Has 2 versions:
+Has 3 versions:
 
 (1)
 ### Reintegration Economic_clean 6.6.23.xls ###
 Received 7 June 2023
-This version is no longer used.
+This version is no longer used. It was used in preparation_res_v1.R
 
 (2)
-### Copy of Reintegration Economic_clean 6.6.23_doublons corriges.xls ### ******************
+### Copy of Reintegration Economic_clean 6.6.23_doublons corriges.xls ###
 Received 20 June 2023
-This is the current version, and is used in preparation_res.R and exploration_res.R
-It is the same data as (1) but with 77 partial duplicates removed.
+Same data as (1) but with 77 partial duplicates removed. Current version, and is used in all
+preparation_res.R and exploration_res.R files that come after v1.
+
+(3)
+### Reintegration Economic_clean 6.6.23_doublons corrigesV2.xls ### ******************
+Received 20 June 2023, a few hours after (2)
+Same data as (2) but with 3 more partial duplicates removed. Current version, and is used in all
+preparation_res.R and exploration_res.R files that come after v1.
+
 
 RSS
 Has 5 versions:

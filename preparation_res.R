@@ -1,12 +1,15 @@
+# Main difference from v1: we use a new dataset with 77 pseudo duplicates removed.
+
 getwd()
 library(readxl)
 library(tidyverse)
 
 # Reintegration Economic Survey ####
-res <- read_excel('data_raw/Reintegration Economic_clean 6.6.23.xlsx',
+res <- read_excel('data_raw/Reintegration Economic_clean 6.6.23_doublons corrigesV2.xlsx',
                   na = c('N/A', 'NA', 'na')) 
 warnings()
-dim(res) # 2,012 x 154
+dim(res) #   2,001 x 154
+# Previously 2,012 x 154
 
 # Subset ####
 df <- res %>% 
@@ -37,7 +40,7 @@ df <- res %>%
     "Date de fin formation",
     "Combien de temps entre votre retour et la réception de l’aide à la réintégration (ou sa première fourniture) ? En semaines",
     "Par quel moyen avez-vous reçu cette assistance économique ?",
-    "Quel est le principal type d’assistance économique que vous avez reçue ?",
+    #"Quel est le principal type d’assistance économique que vous avez reçue ?",
     "Type de business bis",
     "Qui sont les membres de cette entreprise ?",
     "Niveau microbusiness",
@@ -96,8 +99,8 @@ df <- res %>%
       "Combien de temps entre votre retour et la réception de l’aide à la réintégration (ou sa première fourniture) ? En semaines",
     "ReceivedSupportAs" =
       "Par quel moyen avez-vous reçu cette assistance économique ?",
-    "AssistanceType" =
-      "Quel est le principal type d’assistance économique que vous avez reçue ?",
+    #"AssistanceType" =
+    #  "Quel est le principal type d’assistance économique que vous avez reçue ?",
     "BusinessType" = 
       "Type de business bis",
     "BusinessMembers" =
@@ -125,7 +128,8 @@ df <- res %>%
   # Filter out NL countries (Togo = 8, Sierra-Leone = 45)
   filter(Country != 'Togo' & Country != 'Sierra-Leone')
 
-dim(df) # 1959 x 33
+dim(df) #    1948 x 32
+# Previously 1959 x 32
 #view(df)
 
 # NA
@@ -134,28 +138,56 @@ colSums(is.na(df))
 # Dupes
 
 # Perfect
-sum(duplicated(df)) # 2
-df[duplicated(df) | duplicated(df, fromLast = TRUE), ]
-# Remove
-df  <- distinct(df)
-dim(df) # 1957 x 33
+sum(duplicated(df)) # 0
+# Previously 2
+dim(df) # 1948 x 33
+# Previously 1957 x 33
 
 # Pseudo
-sum(duplicated(df$MimosaID)) # 77
-df[duplicated(df$MimosaID), 'MimosaID']
-
-#write.csv(df[duplicated(df$MimosaID), 'MimosaID'], 'data_clean/res_pseudo_dupes.csv')
+sum(duplicated(df$MimosaID)) # 95
+# Previously 77
+df[duplicated(df$MimosaID), 'MimosaID'] %>% print(n = 95)
+# Note, they are all NA, as expected
 
 # Data types
 str(df)
+# MigrationDuration     chr --> needs to be converted
+# TimeToReceiveSupport  chr --> needs to be converted
+# SupportDuration       num
+# TrainingDuration      num
+
+# Check levels before
+df %>% group_by(MigrationDuration) %>% summarise(count = n()) %>% print(n = 31) # --> all are numbers
+df %>% group_by(TimeToReceiveSupport) %>% summarise(count = n()) %>% print(n = 116) # --> not all are numbers;
+# 35 answsers are not numbers, out of which most (29) are 'je ne me souviens pas'. These can be safely
+# coerced to NA, since we will then replace NA with the median. One observation, which is 16o (letter o
+# instead of number 0), is manually changed here:
+df[!is.na(df$TimeToReceiveSupport) & df$TimeToReceiveSupport == '16o', "TimeToReceiveSupport"]  <- "160"
+
+
+# Converting to numeric could produce NA
+# Print before
+colSums(is.na(df))
+# MigrationDuration     110
+# TimeToReceiveSupport  169
+
 
 # Character to Numeric
 df$MigrationDuration <- as.numeric(df$MigrationDuration)
 df$TimeToReceiveSupport <- as.numeric(df$TimeToReceiveSupport)
-df$SupportDuration  <- as.numeric(df$SupportDuration)
+
+# Print after
+colSums(is.na(df))
+# MigrationDuration     110
+# TimeToReceiveSupport  203 (34 NA introduced by coercion, which corresponds to no number from above;
+# this can therefore be safely ignored)
 
 
-# Remove non-SL countries!!! (in pipe) Togo, Sierra Leone, Liberia
+# Check levels after
+df %>% group_by(MigrationDuration) %>% summarise(count = n()) %>% print(n = 31) # --> we see, e.g.,
+# that count of 3 is 252, which are the 251 3 plus 1 03 from above
+df %>% group_by(TimeToReceiveSupport) %>% summarise(count = n()) %>% print(n = 116) # we see, e.g.,
+# that count of 160 is now 4, which are the three cases from above plus the 160 which manually corrected
 
 
 # Recode dependent variables
@@ -185,8 +217,6 @@ df <- df %>% mutate(
               WouldMigrateAgain != 'Non' ~ 'Yes')
 )
 
-
-
 # Reprint counts
 df %>% group_by(BusinessSucess) %>% summarise(count = n()) %>%
   mutate(percent = count/sum(count)*100) %>% arrange(-percent)
@@ -196,10 +226,94 @@ df %>% group_by(WouldMigrateAgain) %>% summarise(count = n()) %>%
   mutate(percent = count/sum(count)*100) %>% arrange(-percent)
 
 
-
-
 # Assess NA
 colSums(is.na(df))
+
+
+# Recode Independent variables
+
+# Principles:
+# Answers who represent less than 10% of all answers are grouped together
+# Exceptions:
+# Disabled, with 95% Non and 5% Yes, is kept as is
+
+colSums(is.na(df))
+
+# Before
+df %>% group_by(BusinessType) %>% summarise(count = n()) %>% 
+  mutate(percent = count/sum(count)*100) %>% arrange(-percent)
+
+df <- df %>% mutate(
+  
+  InterviewType = 
+    case_when(InterviewType == 'Par téléphone' ~ 'Par téléphone',
+              InterviewType != 'Par téléphone' ~ 'Terrain/bureau OIM'
+      ),
+  
+  Country = 
+    case_when(
+      Country != "Sénégal" & Country != "Guinée" & Country != "Côte D'Ivoire" & Country != "Burkina Faso" & Country != "Ghana" ~ 'Autre',
+      TRUE ~ as.character(Country)
+      ),
+  
+  CountryOfReturn =
+    case_when(
+      CountryOfReturn != "Lybie" & CountryOfReturn != "Algerie" & CountryOfReturn != "Niger" & CountryOfReturn != "Maroc" ~ 'Autre',
+      TRUE ~ as.character(CountryOfReturn)
+    ),
+  
+  Gender =
+    case_when(
+      Gender == "Masculin"  ~ "Masculin",
+      Gender == "Féminin" ~ "Féminin" # we purposefully do not specify Refused, to convert
+      # it to a NA
+    ),
+  
+  AgeGroup =
+    case_when(
+      AgeGroup == "18-35 ans" ~ "14-35",
+      AgeGroup == "36-65 ans" ~ "36+",
+      AgeGroup == "14-17 ans" ~ "14-35",
+      AgeGroup == "+65 ans" ~ "36+"
+    ),
+  
+  TrainingType =
+    case_when(
+      TrainingType == "Business development/management training" ~ "Business/management",
+      TrainingType != "Business development/management training" ~ "Other/Unknown" # NA
+      # purposefully not specified to keep them as is
+    ),
+  
+  BusinessType = 
+    case_when(
+      BusinessType == "Commerce" ~ "Commerce",
+      BusinessType == "Elevage" ~ "Elevage",
+      BusinessType == "Transport (Moto - Auto)" ~ "Transport",
+      
+      BusinessType == "Agriculture" ~ "Agriculture/aviculture",
+      BusinessType == "Aviculture" ~ "Agriculture/aviculture",
+      
+      BusinessType == "Artisan-Ouvrier" ~ "Autre",
+      BusinessType == "Couture" ~ "Autre",
+      BusinessType == "Autre" ~ "Autre",
+      BusinessType == "Restauration" ~ "Autre",
+      BusinessType == "Bâtiment/construction" ~ "Autre",
+      BusinessType == "Coiffure - Salon de beauté" ~ "Autre",
+      BusinessType == "Mécanique" ~ "Autre"
+    )
+                
+                )
+
+
+# After
+df %>% group_by(BusinessType) %>% summarise(count = n()) %>% 
+  mutate(percent = count/sum(count)*100) %>% arrange(-percent)
+
+
+
+
+
+
 
 
 
@@ -210,19 +324,19 @@ colSums(is.na(df))
 # Definition: "Durée de l’absence du pays d’origine   Mettre 0 si moins d'un an"
 # In years
 # NA
-sum(is.na(df$MigrationDuration)) # 111
+sum(is.na(df$MigrationDuration)) # 110
 
 # Summarise
 summary(df$MigrationDuration)
 # Check no values are under zero
 df[df$MigrationDuration <= 0, "MigrationDuration"] %>% arrange(MigrationDuration) %>% 
-  print(n=10)# 543, with 432 zero and 111 NA
+  print(n=541)# 541, with 431 zero and 110 NA
 
 # First, we'll replace these 3 values, which are mistakes and not outliers,
 # with NA
 df[order(df$MigrationDuration, decreasing=TRUE), 'MigrationDuration'][0:3,]
 df[df$MigrationDuration >= 936 & !is.na(df$MigrationDuration), 'MigrationDuration']  <- NA
-sum(is.na(df$MigrationDuration)) # 114 --> as expected
+sum(is.na(df$MigrationDuration)) # 113 --> as expected
 # Let's re-summarise
 summary(df$MigrationDuration)
 # And let's store the median
@@ -269,7 +383,7 @@ boxplot(df$MigrationDuration,
 )
 # It is looking better
 # We should still have the same number of NA
-sum(is.na(df$MigrationDuration)) # 114 --> as expected
+sum(is.na(df$MigrationDuration)) # 113 --> as expected
 # And we will also replace them with the median
 df[is.na(df$MigrationDuration), "MigrationDuration"] <- q_median
 # Final summary and plot
@@ -293,14 +407,14 @@ sum(is.na(df$MigrationDuration)) # 0, all good
 # la réintégration (ou sa première fourniture) ? En semaines"
 # In weeks
 # NA
-sum(is.na(df$TimeToReceiveSupport)) # 206
+sum(is.na(df$TimeToReceiveSupport)) # 203
 
 # Summarise
 summary(df$TimeToReceiveSupport)
 
 # Check no value is under 0
 df[df$TimeToReceiveSupport <= 0, "TimeToReceiveSupport"] %>% arrange(TimeToReceiveSupport) %>% 
-  print(n=10)# 216, with 10 zero and 206 NA
+  print(n=213)# 213, with 10 zero and 203 NA
 
 
 # Let's store the median
@@ -315,7 +429,7 @@ out_ind <- which(df$TimeToReceiveSupport %in% c(outliers))
 out_ind
 
 # Print outliers
-df[out_ind, "TimeToReceiveSupport"] %>% arrange(TimeToReceiveSupport) # 215, with
+df[out_ind, "TimeToReceiveSupport"] %>% arrange(TimeToReceiveSupport) # 214, with
 # smallest being 80 weeks
 
 # Plot outliers
@@ -346,7 +460,7 @@ boxplot(df$TimeToReceiveSupport,
 )
 # It is looking better
 # We should still have the same number of NA
-sum(is.na(df$TimeToReceiveSupport)) # 206 --> as expected
+sum(is.na(df$TimeToReceiveSupport)) # 203 --> as expected
 # And we will also replace them with the median
 df[is.na(df$TimeToReceiveSupport), "TimeToReceiveSupport"] <- q_median
 # Final summary and plot
@@ -363,7 +477,10 @@ sum(is.na(df$TimeToReceiveSupport)) # 0, all good
 
 
 
-# SupportDuration
+
+
+
+# SupportDuration OUTSTANDING
 # Definition: SupportDuration = as.numeric(difftime(InterviewDate,
 # ReintegrationDate, units = "days"
 # In days
@@ -437,78 +554,8 @@ boxplot(df$SupportDuration,
 sum(is.na(df$SupportDuration)) # 0, all good
 
 
-# TimeToReceiveSupport
-# Definition: "Combien de temps entre votre retour et la réception de l’aide à
-# la réintégration (ou sa première fourniture) ? En semaines"
-# In weeks
-# NA
-sum(is.na(df$TimeToReceiveSupport)) # 206
-
-# Summarise
-summary(df$TimeToReceiveSupport)
-
-# Check no value is under 0
-df[df$TimeToReceiveSupport <= 0, "TimeToReceiveSupport"] %>% arrange(TimeToReceiveSupport) %>% 
-  print(n=10)# 216, with 10 zero and 206 NA
 
 
-# Let's store the median
-q_median <- median(df$TimeToReceiveSupport, na.rm = TRUE)
-q_median # 16 weeks
-
-# Make a boxplot (IQR)
-
-# Boxplot has a function to detect outliers
-outliers <- boxplot.stats(df$TimeToReceiveSupport)$out
-out_ind <- which(df$TimeToReceiveSupport %in% c(outliers))
-out_ind
-
-# Print outliers
-df[out_ind, "TimeToReceiveSupport"] %>% arrange(TimeToReceiveSupport) # 215, with
-# smallest being 80 weeks
-
-# Plot outliers
-boxplot(df$TimeToReceiveSupport,
-        ylab = "Weeks",
-        main = "TimeToReceiveSupport"
-)
-
-# Spot outliers using percentile method, with conservative threshold of 0.01/0.99
-lower_bound <- quantile(df$TimeToReceiveSupport, 0.01, na.rm = TRUE)
-upper_bound <- quantile(df$TimeToReceiveSupport, 0.99, na.rm = TRUE)
-outlier_ind <- which(df$TimeToReceiveSupport < lower_bound | df$TimeToReceiveSupport > upper_bound)
-df[outlier_ind, "TimeToReceiveSupport"] %>% arrange(TimeToReceiveSupport) %>% print(n=34) # 34, with
-# smallest being 0 weeks (lower) or 180 (upper)
-
-
-# Replace 34 extreme outliers with median
-df[outlier_ind, "TimeToReceiveSupport"] <- q_median
-
-# Re-summarise
-summary(df$TimeToReceiveSupport) # median still 16, max 176 weeks as expected
-# Replot
-outliers <- boxplot.stats(df$TimeToReceiveSupport)$out
-out_ind <- which(df$TimeToReceiveSupport %in% c(outliers))
-boxplot(df$TimeToReceiveSupport,
-        ylab = "Weeks",
-        main = "TimeToReceiveSupport"
-)
-# It is looking better
-# We should still have the same number of NA
-sum(is.na(df$TimeToReceiveSupport)) # 206 --> as expected
-# And we will also replace them with the median
-df[is.na(df$TimeToReceiveSupport), "TimeToReceiveSupport"] <- q_median
-# Final summary and plot
-summary(df$TimeToReceiveSupport) # median still 16, max still 176 weeks years
-outliers <- boxplot.stats(df$TimeToReceiveSupport)$out
-out_ind <- which(df$TimeToReceiveSupport %in% c(outliers))
-boxplot(df$TimeToReceiveSupport,
-        ylab = "Weeks",
-        main = "TimeToReceiveSupport"
-)
-# As above
-# Check no NA are remaining
-sum(is.na(df$TimeToReceiveSupport)) # 0, all good
 
 
 
@@ -521,16 +568,22 @@ sum(is.na(df$TimeToReceiveSupport)) # 0, all good
 # units = "days")
 # In days
 # NA
-sum(is.na(df$TrainingDuration)) # 1347
+sum(is.na(df$TrainingDuration)) # 1378
+# Previously 1347 (difference 31)
 
 # Since not everybody received training, for this variable, we need to subset
 # on non-NA rows only. That is, this subset
-df[!is.na(df$TrainingDuration), ] # 610
+df[!is.na(df$TrainingDuration), ] # 570
+# Previously 610 (difference 40)
+
+# We can also check this variable
+# df %>% group_by(TrainingType) %>% summarise(count = n()) # run only if needed
+# It has 3 more NA, so it is best to choose the other one
 
 # Summarise
 summary(df[!is.na(df$TrainingDuration), "TrainingDuration"])
 # Show smallest numbers, since some are negative
-df[!is.na(df$TrainingDuration) & df$TrainingDuration <= 0, "TrainingDuration"] %>% arrange(TrainingDuration) %>% print(n = 10) # 173 zero
+df[!is.na(df$TrainingDuration) & df$TrainingDuration <= 0, "TrainingDuration"] %>% arrange(TrainingDuration) %>% print(n = 10) # 168 zero
 
 
 # Let's store the median
@@ -547,7 +600,7 @@ out_ind <- which(df$TrainingDuration %in% c(outliers))
 out_ind
 
 # Print outliers
-df[out_ind, "TrainingDuration"] %>% arrange(TrainingDuration) # 31, with
+df[out_ind, "TrainingDuration"] %>% arrange(TrainingDuration) # 29, with
 # smallest being 13 days 
 
 # Plot outliers
@@ -578,7 +631,7 @@ boxplot(df$TrainingDuration,
 )
 # It is looking better
 # We should still have the same number of NA
-sum(is.na(df$TrainingDuration)) # 1347 --> as expected
+sum(is.na(df$TrainingDuration)) # 1378 --> as expected
 
 # But contrary to other variables, we do NOT replace them
 
@@ -589,7 +642,7 @@ sum(is.na(df$TrainingDuration)) # 1347 --> as expected
 
 
 
-
+ 
 
 # Assess NA
 colSums(is.na(df))
@@ -600,8 +653,16 @@ colSums(is.na(df))
 
 
 
+# NOTES
 
-
+# #"AssistanceType" or "Quel est le principal type d’assistance économique que
+# vous avez reçue ?", was completely removed since counts are as follows:
+#AssistanceType     count  percent
+#1 Micro Business    1946 99.9   
+#2 Autre                1  0.0513
+#3 Placement emploi     1  0.0513
+# That said, it might be good to say in the report that nearly all assistance
+# received was for micro business.
 
 
 
