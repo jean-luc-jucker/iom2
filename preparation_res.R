@@ -214,9 +214,9 @@ sum(is.na(df$MigrationDuration)) # 111
 
 # Summarise
 summary(df$MigrationDuration)
-# Check no observations are below or 0
-df[df$MigrationDuration <= 0, "MigrationDuration"] %>% arrange(MigrationDuration) # 543! ask Julie
-
+# Check no values are under zero
+df[df$MigrationDuration <= 0, "MigrationDuration"] %>% arrange(MigrationDuration) %>% 
+  print(n=10)# 543, with 432 zero and 111 NA
 
 # First, we'll replace these 3 values, which are mistakes and not outliers,
 # with NA
@@ -297,14 +297,15 @@ sum(is.na(df$TimeToReceiveSupport)) # 206
 
 # Summarise
 summary(df$TimeToReceiveSupport)
-# Check no observations are below or 0
-df[df$TimeToReceiveSupport <= 0, "TimeToReceiveSupport"] %>% arrange(TimeToReceiveSupport) # 216! ask Julie
+
+# Check no value is under 0
+df[df$TimeToReceiveSupport <= 0, "TimeToReceiveSupport"] %>% arrange(TimeToReceiveSupport) %>% 
+  print(n=10)# 216, with 10 zero and 206 NA
 
 
 # Let's store the median
 q_median <- median(df$TimeToReceiveSupport, na.rm = TRUE)
 q_median # 16 weeks
-
 
 # Make a boxplot (IQR)
 
@@ -359,12 +360,6 @@ boxplot(df$TimeToReceiveSupport,
 # As above
 # Check no NA are remaining
 sum(is.na(df$TimeToReceiveSupport)) # 0, all good
-
-
-
-
-
-
 
 
 
@@ -440,6 +435,170 @@ boxplot(df$SupportDuration,
 # As above
 # Check no NA are remaining
 sum(is.na(df$SupportDuration)) # 0, all good
+
+
+# TimeToReceiveSupport
+# Definition: "Combien de temps entre votre retour et la réception de l’aide à
+# la réintégration (ou sa première fourniture) ? En semaines"
+# In weeks
+# NA
+sum(is.na(df$TimeToReceiveSupport)) # 206
+
+# Summarise
+summary(df$TimeToReceiveSupport)
+
+# Check no value is under 0
+df[df$TimeToReceiveSupport <= 0, "TimeToReceiveSupport"] %>% arrange(TimeToReceiveSupport) %>% 
+  print(n=10)# 216, with 10 zero and 206 NA
+
+
+# Let's store the median
+q_median <- median(df$TimeToReceiveSupport, na.rm = TRUE)
+q_median # 16 weeks
+
+# Make a boxplot (IQR)
+
+# Boxplot has a function to detect outliers
+outliers <- boxplot.stats(df$TimeToReceiveSupport)$out
+out_ind <- which(df$TimeToReceiveSupport %in% c(outliers))
+out_ind
+
+# Print outliers
+df[out_ind, "TimeToReceiveSupport"] %>% arrange(TimeToReceiveSupport) # 215, with
+# smallest being 80 weeks
+
+# Plot outliers
+boxplot(df$TimeToReceiveSupport,
+        ylab = "Weeks",
+        main = "TimeToReceiveSupport"
+)
+
+# Spot outliers using percentile method, with conservative threshold of 0.01/0.99
+lower_bound <- quantile(df$TimeToReceiveSupport, 0.01, na.rm = TRUE)
+upper_bound <- quantile(df$TimeToReceiveSupport, 0.99, na.rm = TRUE)
+outlier_ind <- which(df$TimeToReceiveSupport < lower_bound | df$TimeToReceiveSupport > upper_bound)
+df[outlier_ind, "TimeToReceiveSupport"] %>% arrange(TimeToReceiveSupport) %>% print(n=34) # 34, with
+# smallest being 0 weeks (lower) or 180 (upper)
+
+
+# Replace 34 extreme outliers with median
+df[outlier_ind, "TimeToReceiveSupport"] <- q_median
+
+# Re-summarise
+summary(df$TimeToReceiveSupport) # median still 16, max 176 weeks as expected
+# Replot
+outliers <- boxplot.stats(df$TimeToReceiveSupport)$out
+out_ind <- which(df$TimeToReceiveSupport %in% c(outliers))
+boxplot(df$TimeToReceiveSupport,
+        ylab = "Weeks",
+        main = "TimeToReceiveSupport"
+)
+# It is looking better
+# We should still have the same number of NA
+sum(is.na(df$TimeToReceiveSupport)) # 206 --> as expected
+# And we will also replace them with the median
+df[is.na(df$TimeToReceiveSupport), "TimeToReceiveSupport"] <- q_median
+# Final summary and plot
+summary(df$TimeToReceiveSupport) # median still 16, max still 176 weeks years
+outliers <- boxplot.stats(df$TimeToReceiveSupport)$out
+out_ind <- which(df$TimeToReceiveSupport %in% c(outliers))
+boxplot(df$TimeToReceiveSupport,
+        ylab = "Weeks",
+        main = "TimeToReceiveSupport"
+)
+# As above
+# Check no NA are remaining
+sum(is.na(df$TimeToReceiveSupport)) # 0, all good
+
+
+
+
+
+
+
+# TrainingDuration
+# Definition: TrainingDuration = as.numeric(difftime(TrainingEnd, TrainingStart,
+# units = "days")
+# In days
+# NA
+sum(is.na(df$TrainingDuration)) # 1347
+
+# Since not everybody received training, for this variable, we need to subset
+# on non-NA rows only. That is, this subset
+df[!is.na(df$TrainingDuration), ] # 610
+
+# Summarise
+summary(df[!is.na(df$TrainingDuration), "TrainingDuration"])
+# Show smallest numbers, since some are negative
+df[!is.na(df$TrainingDuration) & df$TrainingDuration <= 0, "TrainingDuration"] %>% arrange(TrainingDuration) %>% print(n = 10) # 173 zero
+
+
+# Let's store the median
+q_median <- median(df$TrainingDuration, na.rm = TRUE) # No need to subset here, since NA
+# are removed with dedicated arguments
+q_median # 3 days
+
+
+# Make a boxplot (IQR)
+
+# Boxplot has a function to detect outliers
+outliers <- boxplot.stats(df$TrainingDuration)$out
+out_ind <- which(df$TrainingDuration %in% c(outliers))
+out_ind
+
+# Print outliers
+df[out_ind, "TrainingDuration"] %>% arrange(TrainingDuration) # 31, with
+# smallest being 13 days 
+
+# Plot outliers
+boxplot(df$TrainingDuration,
+        ylab = "Days",
+        main = "TrainingDuration"
+)
+
+# Spot outliers using percentile method, with conservative threshold of 0.01/0.99
+lower_bound <- quantile(df$TrainingDuration, 0.01, na.rm = TRUE)
+upper_bound <- quantile(df$TrainingDuration, 0.99, na.rm = TRUE)
+outlier_ind <- which(df$TrainingDuration < lower_bound | df$TrainingDuration > upper_bound)
+df[outlier_ind, "TrainingDuration"] %>% arrange(TrainingDuration) %>% print(n=6) # 6, with
+# smallest being 105
+
+
+# Replace 6 extreme outliers with median
+df[outlier_ind, "TrainingDuration"] <- q_median
+
+# Re-summarise
+summary(df$TrainingDuration) # median still 3, max 86 weeks as expected
+# Replot
+outliers <- boxplot.stats(df$TrainingDuration)$out
+out_ind <- which(df$TrainingDuration %in% c(outliers))
+boxplot(df$TrainingDuration,
+        ylab = "Days",
+        main = "TrainingDuration"
+)
+# It is looking better
+# We should still have the same number of NA
+sum(is.na(df$TrainingDuration)) # 1347 --> as expected
+
+# But contrary to other variables, we do NOT replace them
+
+
+
+# Ask Julie if the above makes sense
+
+
+
+
+
+
+# Assess NA
+colSums(is.na(df))
+
+
+
+
+
+
 
 
 

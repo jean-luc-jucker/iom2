@@ -1,15 +1,21 @@
 current version = ******************
 
 RES
-Has only 1 version:
+Has 2 versions:
 
 (1)
-### Reintegration Economic_clean 6.6.23.xls ### ******************
+### Reintegration Economic_clean 6.6.23.xls ###
 Received 7 June 2023
-This is the only version, and is used in preparation_res.R
+This version is no longer used.
+
+(2)
+### Copy of Reintegration Economic_clean 6.6.23_doublons corriges.xls ### ******************
+Received 20 June 2023
+This is the current version, and is used in preparation_res.R and exploration_res.R
+It is the same data as (1) but with 77 partial duplicates removed.
 
 RSS
-Has 4 versions:
+Has 5 versions:
 
 (1)
 ### RSS Kobo  - All data set + Mimosa.xlsx ###
