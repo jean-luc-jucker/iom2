@@ -235,15 +235,22 @@ colSums(is.na(df))
 # Principles:
 # Answers who represent less than 10% of all answers are grouped together
 # Exceptions:
-# Disabled, with 95% Non and 5% Yes, is kept as is
+# - Disabled, with 95% Non and 5% Yes, is kept as is
+# - MicroBusinessLevel, we kept Collective and Individual together (7.29%),
+# Since removing them would mean not being able to use this variable at
+# all
+# - EmployeeNumber, we kept 1+ employee (160) to be able to make at least
+# one comparison
 
 colSums(is.na(df))
 
 # Before
-df %>% group_by(BusinessType) %>% summarise(count = n()) %>% 
+df %>% group_by(FirstChoice) %>% summarise(count = n()) %>% 
   mutate(percent = count/sum(count)*100) %>% arrange(-percent)
 
 df <- df %>% mutate(
+  
+  # RECODE
   
   InterviewType = 
     case_when(InterviewType == 'Par téléphone' ~ 'Par téléphone',
@@ -300,13 +307,71 @@ df <- df %>% mutate(
       BusinessType == "Bâtiment/construction" ~ "Autre",
       BusinessType == "Coiffure - Salon de beauté" ~ "Autre",
       BusinessType == "Mécanique" ~ "Autre"
+    ),
+  
+  BusinessMembers = 
+    case_when(BusinessMembers != "Moi uniquement" ~ "Moi et d'autres",
+              TRUE ~ as.character(BusinessMembers)
+    ),
+  
+  MicroBusinessLevel =
+    case_when(MicroBusinessLevel != "Individual" ~ "Not individual",
+              TRUE ~ as.character(MicroBusinessLevel)
+    ),
+  
+  ReceivedIOMBusinessAdvice =
+    case_when(
+      ReceivedIOMBusinessAdvice == "Non"  ~ "Non",
+      ReceivedIOMBusinessAdvice == "Oui" ~ "Oui" # TRUE purposefully not
+      # specified to convert Ne sait pas and Refused to NA
+    ),
+  
+  BusinessHasEmployees = 
+    case_when(
+      BusinessHasEmployees == "Non"  ~ "Non",
+      BusinessHasEmployees == "Oui" ~ "Autre",
+      BusinessHasEmployees == "Souhaite ne pas répondre" ~ "Autre" # group Oui
+      # and Refused
+    ),
+  
+  EmployeeNumber = 
+    case_when(EmployeeNumber == "1" ~ "1",
+              EmployeeNumber == "2" ~ "1+",
+              EmployeeNumber == "4 et plus" ~ "1+",
+              EmployeeNumber == "3" ~ "1+",
+              EmployeeNumber == "Ne souhaite pas répondre" ~ "1", # we know that
+              # the 6 respondents who Refused to answer replied to the previous
+              # question (BusinessHasEmployees) that they have employees. We decide
+              # to replace the refused with the most common value for respondents
+              # who have employees, that is, 1
+    ),
+  
+  CoronaImpactOnBusiness =
+    case_when(CoronaImpactOnBusiness != "Non" ~ "Oui",
+              TRUE ~ as.character(CoronaImpactOnBusiness)
+    ),
+  
+  FirstChoice = 
+    case_when(
+      FirstChoice == "Non"  ~ "Non",
+      FirstChoice == "Oui" ~ "Oui" # TRUE purposefully not
+      # specified to convert Refused to NA
     )
-                
-                )
+  
+                ) %>% 
+  
+  # REPLACE NA
+  
+  mutate(MicroBusinessLevel = replace_na(MicroBusinessLevel, "Unknown"), # to
+         # avoid losing 336 obs
+         BusinessHasEmployees = replace_na(BusinessHasEmployees, "Autre"),
+         EmployeeNumber = replace_na(EmployeeNumber, "0") # All NA are for respondents
+         # who do not have employees, so we can replace NA with 0
+         )
 
 
 # After
-df %>% group_by(BusinessType) %>% summarise(count = n()) %>% 
+df %>% group_by(FirstChoice) %>% summarise(count = n()) %>% 
   mutate(percent = count/sum(count)*100) %>% arrange(-percent)
 
 
