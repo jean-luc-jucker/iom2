@@ -1,8 +1,421 @@
-# Main difference from v1: we use a new dataset with 77 pseudo duplicates removed.
+# Main difference from v3: we now do the merge ourselves, using yet other data for mimosa
 
 getwd()
 library(readxl)
 library(tidyverse)
+
+# LOAD DATA ####
+
+# Mimosa data (mimosa)
+mimosa <- read_excel('data_raw/MIMOSA Reint Cases M&E-eco v2 identification.xlsx', # new data
+                     na = c('N/A', 'NA', 'na', 'NULL'))
+dim(mimosa) # 222,379 x 14
+
+# Reintegration Economic Survey (kobo) ####
+kobo <- read_excel('data_raw/RE_Economic_Survey_clean for data analysis.xlsx', # same data
+                   na = c('N/A', 'NA', 'na')) 
+dim(kobo) # 2,073 x 154
+
+
+
+
+# 1. MIMOSA ####
+
+# Check perfect duplicates
+sum(duplicated(mimosa)) # 0
+# Check duplicates in caseno
+sum(duplicated(mimosa$caseno)) # 21,907 # expected (members of same family)
+# Check duplicates in MemberNo
+sum(duplicated(mimosa$MemberNo)) # 0 # expected (unique ID)
+
+
+mimosa_slim <- mimosa %>% select(
+  # SELECT
+  caseno,
+  MemberNo,
+  `Niveau microbusiness`,
+  `Type de formation`,
+  `Duree formation`,
+  ArrivalDate_Mimosa,
+  `Date de reception de la reintegration`,
+  Gender_Mimosa,
+  AgeAtReferral_Mimosa
+  
+) %>% 
+  # RENAME
+  rename(
+    "ID_1" = 
+      caseno,
+    "ID_2" = 
+      MemberNo
+  )
+
+
+# 2. KOBO ####
+
+# Check perfect duplicates
+sum(duplicated(kobo)) # 0
+
+# Check duplicates in Identifiant MiMOSA du cas bis
+sum(duplicated(kobo$`Identifiant MiMOSA du cas bis`)) # 137, corresponding to blanks
+# Check duplicates in Identifiant MiMOSA du cas
+#sum(duplicated(kobo$`Identifiant MiMOSA du cas`)) # 68
+
+kobo_slim <- kobo %>% select(
+  # SELECT
+  `Identifiant MiMOSA du cas bis`,
+  
+  
+  # Metadata
+  "Date de l'enquête",
+  "Mode d'enquête",
+  # Dependent variables
+  "Comment se porte votre entreprise ou business actuellement ?",
+  "L’entreprise vous permet -elle de gagner assez d’argent pour subvenir à vos besoins et à celle de votre famille ?",
+  "Avez-vous déjà planifié de migrer de nouveau ?",
+  "Si vous n’aviez pas bénéficié de l’aide de l’OIM pour votre réintégration économique quelle serait votre situation actuelle ?",
+  "Pensez-vous que le retour a été une bonne décision ?",
+  "Êtes-vous satisfait de l’aide à la réintégration de manière globale ?",
+  # Grouping variables
+  "Pays",
+  "Pays d’où le migrant est de retour :",
+  "Sexe",
+  "Age (l'enquête est destinée aux personnes agées de 14 ans et plus)",
+  "Durée de l’absence du pays d’origine   Mettre 0 si moins d'un an",
+  "Situation de handicap",
+  "Par quel moyen avez-vous reçu cette assistance économique ?",
+  "Type de business bis",
+  "Qui sont les membres de cette entreprise ?",
+  "L'OIM   ou un de ses partenaires vous a-t-elle formé sur la façon de gérer une entreprise ?",
+  "L’entreprise emploie-t-elle du personnel ?",
+  "Si oui, combien des personnes sont employées par votre entreprise ?",
+  "Est-ce votre entreprise a été affectée par la maladie de Coronavirus ?",
+  "Est-ce que le type d'assistance économique que vous avez reçu correspondait à votre premier choix ?"
+  
+  
+  
+  
+  
+) %>% 
+  # RENAME
+  rename("ID_1" = 
+           `Identifiant MiMOSA du cas bis`
+         
+  )
+
+
+mimosa_slim # 222,379 x 9
+kobo_slim # 2,073 x 23
+
+# expected
+# 2,073 x 22
+
+
+# Implement stack here: #########################
+
+mimosa_test <- mimosa_slim %>% 
+  pivot_longer(c(ID_1, ID_2), values_to = "ID_1") %>% 
+  select(-name) %>% 
+  distinct_all()
+
+
+
+result <- kobo_slim %>% left_join(mimosa_test)
+result
+dim(result) # 2,211, which is 2,211 - 2,073 = 138 more rows than in initial data!
+
+colSums(is.na(result)) # ID_1 = 138, corresponding to blanks
+
+sum(duplicated(result)) # 0
+result[duplicated(result), ]
+
+
+sum(duplicated(result$ID_1)) # 275
+to_resolve  <- result[duplicated(result$ID_1) | duplicated(result$ID_1, fromLast = TRUE), ]
+to_resolve
+
+write_csv(to_resolve, 'data_clean/to_resolve.csv')
+
+##################################################
+
+
+countingit  <- to_resolve %>% filter(!is.na(ID_1)) %>%  group_by(ID_1) %>% summarise(count=n())
+countingit
+
+
+
+
+#75
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+########## v 2 ##################################################################################################################################
+
+
+
+
+
+
+# Stack########################################################################
+
+# 'Mimosa'
+df1 <- data.frame(
+  ID_1 = c('NE1', 'NE2', 'LR2', 'NE4', 'WE5'),
+  ID_2 = c('WW1', 'NE3', 'LR2', 'NE5', 'WE5'),
+  Country = c('Togo', 'USA', 'Iceland', 'Chad', 'UK'))
+df1
+
+
+# 'Kobo'
+df2 <- data.frame(
+  ID_1 = c('NE1', 'NE3', 'LR2', 'NE6'),
+  Sex = c('M', 'F', 'M', 'M'))
+df2
+
+
+
+
+# Desired output:
+
+#     ID_1    Country   Sex
+# 1   NE1     Togo      M     --> based on ID_1 of df1
+# 2   NE3     USA       F     --> based on ID_2 of df1
+# 3   LR2     Iceland   M     --> based on both ID_1 and ID_2 of df1
+# 4   NE6     <NA>      M     --> no match but row is kept (right join)
+
+
+dput(df1)
+df1 <- structure(list(ID_1 = c("NE1", "NE2", "LR2", "NE4", "WE5"), ID_2 = c("WW1", 
+                                                                            "NE3", "LR2", "NE5", "WE5"), Country = c("Togo", "USA", "Iceland", 
+                                                                                                                     "Chad", "UK")), class = "data.frame", row.names = c(NA, -5L))
+
+
+dput(df2)
+df2 <- structure(list(ID_1 = c("NE1", "NE3", "LR2", "NE6"), Sex = c("M", 
+                                                                    "F", "M", "M")), class = "data.frame", row.names = c(NA, -4L))
+
+
+df1
+df2
+
+
+# Solution:
+
+# a
+df2 %>%  
+  left_join(distinct_all(select(pivot_longer(df1, -Country, values_to = "ID_1"), -name)))
+
+# b
+df1 <- df1 %>% 
+  pivot_longer(-Country, values_to = "ID_1") %>% 
+  select(-name) %>%  
+  distinct_all()
+
+df2 %>% 
+  left_join(df1)
+
+
+
+# See also
+# https://stackoverflow.com/questions/73968384/how-to-join-rows-that-match-any-of-multiple-columns?rq=2
+
+
+df1 %>% 
+  pivot_longer(c(ID_1, ID_2), values_to = "ID_1") %>% 
+  select(-name) %>%  
+  distinct_all()
+
+df1
+
+
+################################################################################
+
+
+# 1. MIMOSA ####
+
+# Check perfect duplicates
+sum(duplicated(mimosa)) # 0
+
+
+# Check duplicates in caseno
+sum(duplicated(mimosa$caseno)) # 21,907
+# Check duplicates in MemberNo
+sum(duplicated(mimosa$MemberNo)) # 0
+
+
+mimosa_slim <- mimosa %>% select(
+  # SELECT
+  caseno,
+  MemberNo,
+  `Niveau microbusiness`,
+  `Niveau de formation`,
+  `Type de formation`,
+  `Duree formation`
+) %>% 
+  # RENAME
+  rename(
+    "ID_1" = 
+      caseno,
+    "ID_2" = 
+      MemberNo
+  )
+  
+
+# 2. KOBO ####
+
+# Check perfect duplicates
+sum(duplicated(kobo)) # 0
+
+# Check duplicates in Identifiant MiMOSA du cas bis
+sum(duplicated(kobo$`Identifiant MiMOSA du cas bis`)) # 137, corresponding to blanks
+# Check duplicates in Identifiant MiMOSA du cas
+sum(duplicated(kobo$`Identifiant MiMOSA du cas`)) # 68
+
+kobo_slim <- kobo %>% select(
+  # SELECT
+  `Identifiant MiMOSA du cas bis`,
+  Sexe,
+  `Pays d’où le migrant est de retour :`,
+  `Combien de temps entre votre retour et la réception de l’aide à la réintégration (ou sa première fourniture) ? En semaines`
+  
+) %>% 
+  # RENAME
+  rename("ID_1" = 
+           `Identifiant MiMOSA du cas bis`
+    
+  )
+
+
+mimosa_slim
+kobo_slim
+
+
+# Implement stack here: #########################
+
+
+
+mimosa_test <- mimosa_slim %>% 
+  pivot_longer(c(ID_1, ID_2), values_to = "ID_1") %>% 
+  select(-name) %>% 
+  distinct_all()
+
+
+
+result <- kobo_slim %>% left_join(mimosa_test)
+result
+dim(result) # 2,120, which is 2,120 - 2,073 = 47 more rows than in initial data!
+
+colSums(is.na(result)) # ID_1 = 138, corresponding to blanks
+
+sum(duplicated(result)) # 135, weird
+result[duplicated(result), ]
+
+
+sum(duplicated(result$ID_1)) # 184
+result[duplicated(result$ID_1), ]
+
+
+##################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 3. MERGE ####
+
+# Objects dimensions
+dim(mimosa_slim) # 222,379 x 3
+dim(kobo_slim)   #   2,073 x 2
+
+# Target dimension
+# 2,073 x 4
+
+# Compute intersect
+# Using caseno (renamed to ID) from Mimosa
+length(intersect(mimosa_slim$ID, kobo_slim$ID)) # 1,235
+# Using MemberNo from Mimosa
+length(intersect(mimosa_slim$MemberNo, kobo_slim$ID)) # 632
+
+# Note, Identifiant MiMOSA du cas bis (that is, kobo_slim ID) has 138 blanks
+
+
+
+
+
+
+
+res  <- merge(mimosa_slim, kobo_slim, by = 'ID')
+dim(res) # 1,373 x 4 (1235 + 138 blanks = 1,373 indeed)
+
+
+view(res)
+
+colSums(is.na(res))
+
+################################################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# We'll do a right join, keeping all rows from kobo_slim
+res <- merge(mimosa_slim, kobo_slim, by='ID', all.y = TRUE)
+
+# Dimensions
+dim(rss) # 1,385 x 214 --> as expected
+
+# Check perfect duplicates
+sum(duplicated(rss)) # 0
+# Check pseudo-duplicates
+sum(duplicated(rss$ID)) # 128
+# Note all these duplicates are NA, as expected
+rss[duplicated(rss$ID), "ID"]
+
+
+
+###############################################################################
+#################################### O L D ####################################
+###############################################################################
 
 # Reintegration Economic Survey ####
 res <- read_excel('data_raw/Reintegration Economic_clean 6.6.23_doublons corrigesV2.xlsx',
@@ -728,14 +1141,6 @@ colSums(is.na(df))
 #3 Placement emploi     1  0.0513
 # That said, it might be good to say in the report that nearly all assistance
 # received was for micro business.
-
-
-
-
-
-
-
-
 
 # Export
 #write_excel_csv(df, 'data_clean/res_slim.csv') # using extension .xls will avoid

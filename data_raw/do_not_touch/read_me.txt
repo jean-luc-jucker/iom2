@@ -1,7 +1,7 @@
 current version = ******************
 
 RES
-Has 3 versions:
+Has 5 versions:
 
 (1)
 ### Reintegration Economic_clean 6.6.23.xls ###
@@ -15,10 +15,39 @@ Same data as (1) but with 77 partial duplicates removed. Current version, and is
 preparation_res.R and exploration_res.R files that come after v1.
 
 (3)
-### Reintegration Economic_clean 6.6.23_doublons corrigesV2.xls ### ******************
+### Reintegration Economic_clean 6.6.23_doublons corrigesV2.xls ###
 Received 20 June 2023, a few hours after (2)
 Same data as (2) but with 3 more partial duplicates removed. Current version, and is used in all
 preparation_res.R and exploration_res.R files that come after v1.
+
+
+(4)
+From here, we have 2 files (i.e., the files before merging), i.e.,
+one from MIMOSA, and one from KOBO
+
+### MIMOSA Reint Cases M&E-eco.xlsx ###
+
+Received 21 June 2023
+This is the MIMOSA data (file 1). It is used for merge in preparation_res.R (all
+versions after preparation_res_v2.R)
+
+### RE_Economic_Survey_clean for data analysis.xlsx ### ******************
+
+Received 21 June 2023
+This is the KOBO data (file 2). It is used for merge in preparation_res.R (all
+versions after preparation_res_v2.R)
+
+(5)
+
+### MIMOSA Reint Cases M&E-eco v2 identification #### ******************
+
+Received 22 June 2023
+
+This is the MIMOSA data (file 1). It is used for merge in preparation_res.R (all
+versions after preparation_res_v3.R).
+It replaces version 4, i.e., MIMOSA Reint Cases M&E-eco.xlsx
+
+------------------------------------------------------------------------------------------------
 
 
 RSS
@@ -55,9 +84,25 @@ This is the same KOBO data (file 2) as in v3, but with 1 variable added.
 It is used for merge in preparation_rss.R (all versions after preparation_rss_v1.R)
 
 (5)
+
 ### Reintegration Cases M&E RSS June 2023 (liste complète).xlsx ### ******************
+
 Received 15 June 2023
 This is the same MIMOSA data as in v3 (file 1), but with slightly more observations.
+
 ### RSS data cleaned to use for analysis V3 doublons corriges.xlsx ### ******************
+
 Received 15 June 2023
 This is the same KOBO data (file 2) as in v4, but with duplicates and other errors removed.
+
+
+
+
+
+
+
+
+
+
+
+
