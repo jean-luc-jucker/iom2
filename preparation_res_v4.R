@@ -1,4 +1,4 @@
-# Main difference from v4: we eliminate all 75 duplicates
+# Main difference from v3: we now do the merge ourselves, using yet other data for mimosa
 
 getwd()
 library(readxl)
@@ -28,30 +28,14 @@ sum(duplicated(mimosa$caseno)) # 21,907 # expected (members of same family)
 # Check duplicates in MemberNo
 sum(duplicated(mimosa$MemberNo)) # 0 # expected (unique ID)
 
+# Following discussion with Client, we filter out respondents who are younger
+# than 16 years old. This allows to resolve duplicates later.
+mimosa  <- mimosa %>% filter(AgeAtReferral_Mimosa > 15)
+dim(mimosa) # 202,326
 
+# Recheck duplicates in caseno
+sum(duplicated(mimosa$caseno)) # 4,048 (big drop, as expected)
 
-# Durations
-
-# A calculer
-
-# Temps entre retour et réception réintégration
-# Mimosa:
-# ArrivalDate_Mimosa #  ---> DateOfReturn
-# Date de reception de la reintegration # ---> ReintegrationDate
-# DONE (but check mistakes), new name ---> ReturnToReintegration
-
-# Délai entre la réception de l'assistance te le jour de l'enquête
-# Mimosa: Date de réception de la réintégration #
-# Kobo: Date de l'enquête #
-
-
-# Déjà calculé
-
-# Kobo:
-#  DONE Durée de l’absence du pays d’origine   Mettre 0 si moins d'un an # ---> MigrationDuration
-
-# Mimosa
-#  DONE Duree formation (contrôler la variable -- OK!) # ---> TrainingDuration
 
 
 mimosa_slim <- mimosa %>% select(
@@ -60,9 +44,9 @@ mimosa_slim <- mimosa %>% select(
   MemberNo,
   `Niveau microbusiness`,
   `Type de formation`,
-  `Duree formation`, #
-  ArrivalDate_Mimosa, #
-  `Date de reception de la reintegration`, #
+  `Duree formation`,
+  ArrivalDate_Mimosa,
+  `Date de reception de la reintegration`,
   Gender_Mimosa,
   AgeAtReferral_Mimosa
   
@@ -72,30 +56,8 @@ mimosa_slim <- mimosa %>% select(
     "ID_1" = 
       caseno,
     "ID_2" = 
-      MemberNo,
-    "MicroBusinessLevel" =
-      "Niveau microbusiness",
-    "TrainingType" =
-      "Type de formation",
-    "TrainingDuration" = #
-      "Duree formation",
-    "DateOfReturn" = #
-      "ArrivalDate_Mimosa",
-    "ReintegrationDate" = 
-      "Date de reception de la reintegration",
-  ) %>% 
-  
-  # Add variables
-  mutate(ReturnToReintegration = 
-           as.numeric(difftime(ReintegrationDate, DateOfReturn, units = "days"))
+      MemberNo
   )
-
-
-
-
-#view(mimosa_slim)
-
-
 
 
 # 2. KOBO ####
@@ -112,7 +74,7 @@ kobo_slim <- kobo %>% select(
   
   
   # Metadata
-  "Date de l'enquête", #
+  "Date de l'enquête",
   "Mode d'enquête",
   # Dependent variables
   "Comment se porte votre entreprise ou business actuellement ?",
@@ -126,10 +88,8 @@ kobo_slim <- kobo %>% select(
   "Pays d’où le migrant est de retour :",
   "Sexe",
   "Age (l'enquête est destinée aux personnes agées de 14 ans et plus)",
-  "Durée de l’absence du pays d’origine   Mettre 0 si moins d'un an",  #
+  "Durée de l’absence du pays d’origine   Mettre 0 si moins d'un an",
   "Situation de handicap",
-  
-  
   "Par quel moyen avez-vous reçu cette assistance économique ?",
   "Type de business bis",
   "Qui sont les membres de cette entreprise ?",
@@ -146,106 +106,12 @@ kobo_slim <- kobo %>% select(
 ) %>% 
   # RENAME
   rename("ID_1" = 
-           `Identifiant MiMOSA du cas bis`,
-         "InterviewDate" =
-           "Date de l'enquête", #
-         "InterviewType" =
-           "Mode d'enquête",
-         
-         # Dependent variables
-         "BusinessSucess" =
-           "Comment se porte votre entreprise ou business actuellement ?",
-         "BusinessProfitability" =
-           "L’entreprise vous permet -elle de gagner assez d’argent pour subvenir à vos besoins et à celle de votre famille ?",
-         "WouldMigrateAgain" =
-           "Avez-vous déjà planifié de migrer de nouveau ?",
-         "SituationWithoutSupport" =
-           "Si vous n’aviez pas bénéficié de l’aide de l’OIM pour votre réintégration économique quelle serait votre situation actuelle ?",
-         "ReturningWasGoodDecision" =
-           "Pensez-vous que le retour a été une bonne décision ?",
-         "SatisfiedWithReintegrationSupport" =
-           "Êtes-vous satisfait de l’aide à la réintégration de manière globale ?",
-         
-         # Grouping variables
-         "Country" = 
-           "Pays",
-         "CountryOfReturn" =
-           "Pays d’où le migrant est de retour :",
-         "Gender" =
-           "Sexe",
-         "AgeGroup" =
-           "Age (l'enquête est destinée aux personnes agées de 14 ans et plus)",
-         "MigrationDuration" =
-           "Durée de l’absence du pays d’origine   Mettre 0 si moins d'un an", #
-         "Disabled" =
-           "Situation de handicap",
-         
-         "ReceivedSupportAs" =
-           "Par quel moyen avez-vous reçu cette assistance économique ?",
-         "BusinessType" = 
-           "Type de business bis",
-         "BusinessMembers" =
-           "Qui sont les membres de cette entreprise ?",
-         "ReceivedIOMBusinessAdvice" =
-           "L'OIM   ou un de ses partenaires vous a-t-elle formé sur la façon de gérer une entreprise ?",
-         "BusinessHasEmployees" =
-           "L’entreprise emploie-t-elle du personnel ?",
-         "EmployeeNumber" =
-           "Si oui, combien des personnes sont employées par votre entreprise ?",
-         "CoronaImpactOnBusiness" =
-           "Est-ce votre entreprise a été affectée par la maladie de Coronavirus ?",
-         "FirstChoice" = 
-           "Est-ce que le type d'assistance économique que vous avez reçu correspondait à votre premier choix ?"
+           `Identifiant MiMOSA du cas bis`
          
   )
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-mimosa_slim # 222,379 x 10
+mimosa_slim # 202,326 x 9
 kobo_slim # 2,073 x 23
 
 # expected
@@ -263,84 +129,66 @@ mimosa_test <- mimosa_slim %>%
 
 result <- kobo_slim %>% left_join(mimosa_test)
 result
-dim(result) # 2,211, which is 2,211 - 2,073 = 138 more rows than in initial data!
+dim(result) # 2,092, which is 2,092 - 2,073 = 19 more rows than in initial data!
 
 colSums(is.na(result)) # ID_1 = 138, corresponding to blanks
 
 
-sum(duplicated(result$ID_1)) # 275 (i.e., 275 - 138 blanks = our 137 rows (+1) from above)
+sum(duplicated(result$ID_1)) # 156 (i.e., 156 - 138 blanks = our 18 rows (+1) from above)
 to_resolve  <- result[duplicated(result$ID_1) | duplicated(result$ID_1, fromLast = TRUE), ]
-to_resolve # 351 x 31
+to_resolve
 
-
-
-
-#write_csv(to_resolve, 'data_clean/to_resolve_v3.csv')
+write_csv(to_resolve, 'data_clean/to_resolve_v3.csv')
 
 ##################################################
 
 
 countingit  <- to_resolve %>% filter(!is.na(ID_1)) %>%  group_by(ID_1) %>% summarise(count=n())
-countingit # The 138 supplementary rows are 75 cases
+countingit # The 19 supplementary rows are 15 cases
 
-sum(countingit$count) # they represent 213 rows
+sum(countingit$count) # 34
 
 list(countingit$ID_1)
 
+#[1] "" "" "" "" "" "" "" ""
+#[9] "" "" "" "" "" "" ""
 
-#[31] ""  ""  ""  ""  ""  "" 
-#[37] ""  ""  ""  ""  ""  "" 
-#[43] ""  ""  ""  ""  ""  ""
-#[49] ""  ""  "" ""  ""  "" 
-#[55] ""  ""  ""  ""  ""  ""
-#[61] "" "" "" "" ""  "" 
-#[67] ""  ""  ""  ""  ""  "" 
-#[73] ""  ""  "" 
-dim(result) # 2211
-res <- result %>% filter(ID_1 != "CH5017X029301" & ID_1 != "CH5017X029302" & ID_1 != "CH5018X008561" &
-                    ID_1 != "DZ1021003884" & ID_1 != "DZ1021004350" & ID_1 != "EG1020001001" &
-                    ID_1 != "LY1017002826" & ID_1 != "LY1018003615" & ID_1 != "LY1019002074" &
-                    ID_1 != "LY1019005427" & ID_1 != "LY1019009209" & ID_1 != "LY1020005937" &
-                    ID_1 != "LY1020005982" & ID_1 != "LY1021006171" & ID_1 != "LY1021006863" &
-                    ID_1 != "LY1021007548" & ID_1 != "LY1021007767" & ID_1 != "LY1021008663" &
-                    ID_1 != "LY1021008993" & ID_1 != "LY1021010520" & ID_1 != "LY1021010615" &
-                    ID_1 != "LY1021011159" & ID_1 != "LY1021011513" & ID_1 != "LY1022001492" &
-                    ID_1 != "LY1022002734" & ID_1 != "LY1022004031" & ID_1 != "LY1022004033" &
-                    ID_1 != "MA1017002391" & ID_1 != "MA1018001175" & ID_1 != "MA1019001113" &
-                    ID_1 != "MA1019001234" & ID_1 != "MA1019002188" & ID_1 != "MA1020003273" &
-                    ID_1 != "MA1020003524" & ID_1 != "MA1020003929" & ID_1 != "MA1021001274" &
-                    ID_1 != "MA1021001348" & ID_1 != "MA1021001608" & ID_1 != "MA1021001859" &
-                    ID_1 != "MA1021001930" & ID_1 != "MA1021002702" & ID_1 != "MA1021002825" &
-                    ID_1 != "MA1021003343" & ID_1 != "MA1021003397" & ID_1 != "MA1021003875" &
-                    ID_1 != "MA1021003939" & ID_1 != "MA1021004177" & ID_1 != "ML1019X004589" &
-                    ID_1 != "MR1020002212" & ID_1 != "MR1020002251" & ID_1 != "MR1020X000871" &
-                    ID_1 != "MR1021001601" & ID_1 != "MR1022001155" & ID_1 != "MR1022001186" &
-                    ID_1 != "NE1018001196" & ID_1 != "NE1018001888" & ID_1 != "NE1018004403" &
-                    ID_1 != "NE1019002475" & ID_1 != "NE1019002484" & ID_1 != "NE1019X071222" &
-                    ID_1 != "NE1020X006991" & ID_1 != "NE1020X020753" & ID_1 != "NE1021X051030" &
-                    ID_1 != "NE1022X002609" & ID_1 != "SN1020001566" & ID_1 != "TD1021001049" &
-                    ID_1 != "TD1021001245" & ID_1 != "TD1021001356" & ID_1 != "TD1021001444" &
-                    ID_1 != "TD1021001618" & ID_1 != "TD1022001065" & ID_1 != "TD1022001219" &
-                    ID_1 != "TN1018001384" & ID_1 != "TN1020001880" & ID_1 != "TN1021002294" 
+result <- result %>% filter(ID_1 != "LY1020005937" &
+                    ID_1 != "LY1021006171" &
+                    ID_1 != "LY1021007767" &
+                    ID_1 != "LY1021011159" &
+                    ID_1 != "LY1022002734" &
+                    ID_1 != "LY1022004031" &
+                    ID_1 != "LY1022004033" &
+                    ID_1 != "MA1019001234" &
+                    ID_1 != "MA1021001608" &
+                    ID_1 != "MR1021001601" &
+                    ID_1 != "MR1022001155" &
+                    ID_1 != "NE1018001888" &
+                    ID_1 != "NE1018004403" &
+                    ID_1 != "TD1022001065" &
+                    ID_1 != "TD1022001219" 
                   | is.na(ID_1))
 
 
-# LY1017002826
-
-# 1,998 x 31
-
-# This is 2,211 - 213 = 1,998 indeed
-
-# Furthermore, we have 2,073 - 1,998 =  75 less participants than in initial data indeed!
-
-
-
-
-
-write_excel_csv(res, 'data_clean/res2.csv')
-
 
 # LY1018003615
+
+
+# 2,058 x 30
+
+# This is 2,092 - 34 = 2,058 indeed
+
+# Furthermore, we have 2,073 - 2,058 = 15 less participants than in initial data indeed!
+
+
+
+
+
+#write_excel_csv(result, 'data_clean/res.csv')
+
+
+
 
 
 
