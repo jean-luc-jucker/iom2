@@ -1,8 +1,613 @@
-# Main difference from v1: we use a new dataset with 77 pseudo duplicates removed.
+# Main difference from v4: we eliminate all 75 duplicates
 
 getwd()
 library(readxl)
 library(tidyverse)
+
+# LOAD DATA ####
+
+# Mimosa data (mimosa)
+mimosa <- read_excel('data_raw/MIMOSA Reint Cases M&E-eco v2 identification.xlsx', # new data
+                     na = c('N/A', 'NA', 'na', 'NULL'))
+dim(mimosa) # 222,379 x 14
+
+# Reintegration Economic Survey (kobo) ####
+kobo <- read_excel('data_raw/RE_Economic_Survey_clean for data analysis.xlsx', # same data
+                   na = c('N/A', 'NA', 'na')) 
+dim(kobo) # 2,073 x 154
+
+
+
+
+# 1. MIMOSA ####
+
+# Check perfect duplicates
+sum(duplicated(mimosa)) # 0
+# Check duplicates in caseno
+sum(duplicated(mimosa$caseno)) # 21,907 # expected (members of same family)
+# Check duplicates in MemberNo
+sum(duplicated(mimosa$MemberNo)) # 0 # expected (unique ID)
+
+
+
+# Durations
+
+# A calculer
+
+# Temps entre retour et réception réintégration
+# Mimosa:
+# ArrivalDate_Mimosa #  ---> DateOfReturn
+# Date de reception de la reintegration # ---> ReintegrationDate
+# DONE (but check mistakes), new name ---> ReturnToReintegration
+
+# Délai entre la réception de l'assistance te le jour de l'enquête
+# Mimosa: Date de réception de la réintégration #
+# Kobo: Date de l'enquête #
+
+
+# Déjà calculé
+
+# Kobo:
+#  DONE Durée de l’absence du pays d’origine   Mettre 0 si moins d'un an # ---> MigrationDuration
+
+# Mimosa
+#  DONE Duree formation (contrôler la variable -- OK!) # ---> TrainingDuration
+
+
+mimosa_slim <- mimosa %>% select(
+  # SELECT
+  caseno,
+  MemberNo,
+  `Niveau microbusiness`,
+  `Type de formation`,
+  `Duree formation`, #
+  ArrivalDate_Mimosa, #
+  `Date de reception de la reintegration`, #
+  Gender_Mimosa,
+  AgeAtReferral_Mimosa
+  
+) %>% 
+  # RENAME
+  rename(
+    "ID_1" = 
+      caseno,
+    "ID_2" = 
+      MemberNo,
+    "MicroBusinessLevel" =
+      "Niveau microbusiness",
+    "TrainingType" =
+      "Type de formation",
+    "TrainingDuration" = #
+      "Duree formation",
+    "DateOfReturn" = #
+      "ArrivalDate_Mimosa",
+    "ReintegrationDate" = 
+      "Date de reception de la reintegration",
+  ) %>% 
+  
+  # Add variables
+  mutate(ReturnToReintegration = 
+           as.numeric(difftime(ReintegrationDate, DateOfReturn, units = "days"))
+  )
+
+
+
+
+#view(mimosa_slim)
+
+
+
+
+# 2. KOBO ####
+
+# Check perfect duplicates
+sum(duplicated(kobo)) # 0
+
+# Check duplicates in Identifiant MiMOSA du cas bis
+sum(duplicated(kobo$`Identifiant MiMOSA du cas bis`)) # 137 (+1), corresponding to blanks
+
+kobo_slim <- kobo %>% select(
+  # SELECT
+  `Identifiant MiMOSA du cas bis`,
+  
+  
+  # Metadata
+  "Date de l'enquête", #
+  "Mode d'enquête",
+  # Dependent variables
+  "Comment se porte votre entreprise ou business actuellement ?",
+  "L’entreprise vous permet -elle de gagner assez d’argent pour subvenir à vos besoins et à celle de votre famille ?",
+  "Avez-vous déjà planifié de migrer de nouveau ?",
+  "Si vous n’aviez pas bénéficié de l’aide de l’OIM pour votre réintégration économique quelle serait votre situation actuelle ?",
+  "Pensez-vous que le retour a été une bonne décision ?",
+  "Êtes-vous satisfait de l’aide à la réintégration de manière globale ?",
+  # Grouping variables
+  "Pays",
+  "Pays d’où le migrant est de retour :",
+  "Sexe",
+  "Age (l'enquête est destinée aux personnes agées de 14 ans et plus)",
+  "Durée de l’absence du pays d’origine   Mettre 0 si moins d'un an",  #
+  "Situation de handicap",
+  
+  
+  "Par quel moyen avez-vous reçu cette assistance économique ?",
+  "Type de business bis",
+  "Qui sont les membres de cette entreprise ?",
+  "L'OIM   ou un de ses partenaires vous a-t-elle formé sur la façon de gérer une entreprise ?",
+  "L’entreprise emploie-t-elle du personnel ?",
+  "Si oui, combien des personnes sont employées par votre entreprise ?",
+  "Est-ce votre entreprise a été affectée par la maladie de Coronavirus ?",
+  "Est-ce que le type d'assistance économique que vous avez reçu correspondait à votre premier choix ?"
+  
+  
+  
+  
+  
+) %>% 
+  # RENAME
+  rename("ID_1" = 
+           `Identifiant MiMOSA du cas bis`,
+         "InterviewDate" =
+           "Date de l'enquête", #
+         "InterviewType" =
+           "Mode d'enquête",
+         
+         # Dependent variables
+         "BusinessSucess" =
+           "Comment se porte votre entreprise ou business actuellement ?",
+         "BusinessProfitability" =
+           "L’entreprise vous permet -elle de gagner assez d’argent pour subvenir à vos besoins et à celle de votre famille ?",
+         "WouldMigrateAgain" =
+           "Avez-vous déjà planifié de migrer de nouveau ?",
+         "SituationWithoutSupport" =
+           "Si vous n’aviez pas bénéficié de l’aide de l’OIM pour votre réintégration économique quelle serait votre situation actuelle ?",
+         "ReturningWasGoodDecision" =
+           "Pensez-vous que le retour a été une bonne décision ?",
+         "SatisfiedWithReintegrationSupport" =
+           "Êtes-vous satisfait de l’aide à la réintégration de manière globale ?",
+         
+         # Grouping variables
+         "Country" = 
+           "Pays",
+         "CountryOfReturn" =
+           "Pays d’où le migrant est de retour :",
+         "Gender" =
+           "Sexe",
+         "AgeGroup" =
+           "Age (l'enquête est destinée aux personnes agées de 14 ans et plus)",
+         "MigrationDuration" =
+           "Durée de l’absence du pays d’origine   Mettre 0 si moins d'un an", #
+         "Disabled" =
+           "Situation de handicap",
+         
+         "ReceivedSupportAs" =
+           "Par quel moyen avez-vous reçu cette assistance économique ?",
+         "BusinessType" = 
+           "Type de business bis",
+         "BusinessMembers" =
+           "Qui sont les membres de cette entreprise ?",
+         "ReceivedIOMBusinessAdvice" =
+           "L'OIM   ou un de ses partenaires vous a-t-elle formé sur la façon de gérer une entreprise ?",
+         "BusinessHasEmployees" =
+           "L’entreprise emploie-t-elle du personnel ?",
+         "EmployeeNumber" =
+           "Si oui, combien des personnes sont employées par votre entreprise ?",
+         "CoronaImpactOnBusiness" =
+           "Est-ce votre entreprise a été affectée par la maladie de Coronavirus ?",
+         "FirstChoice" = 
+           "Est-ce que le type d'assistance économique que vous avez reçu correspondait à votre premier choix ?"
+         
+  )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+mimosa_slim # 222,379 x 10
+kobo_slim # 2,073 x 23
+
+# expected
+# 2,073 x 30
+
+
+# Implement stack here: #########################
+
+mimosa_test <- mimosa_slim %>% 
+  pivot_longer(c(ID_1, ID_2), values_to = "ID_1") %>% 
+  select(-name) %>% 
+  distinct_all()
+
+
+
+result <- kobo_slim %>% left_join(mimosa_test)
+result
+dim(result) # 2,211, which is 2,211 - 2,073 = 138 more rows than in initial data!
+
+colSums(is.na(result)) # ID_1 = 138, corresponding to blanks
+
+
+sum(duplicated(result$ID_1)) # 275 (i.e., 275 - 138 blanks = our 137 rows (+1) from above)
+to_resolve  <- result[duplicated(result$ID_1) | duplicated(result$ID_1, fromLast = TRUE), ]
+to_resolve # 351 x 31
+
+
+
+
+#write_csv(to_resolve, 'data_clean/to_resolve_v3.csv')
+
+##################################################
+
+
+countingit  <- to_resolve %>% filter(!is.na(ID_1)) %>%  group_by(ID_1) %>% summarise(count=n())
+countingit # The 138 supplementary rows are 75 cases
+
+sum(countingit$count) # they represent 213 rows
+
+list(countingit$ID_1)
+
+
+#[31] ""  ""  ""  ""  ""  "" 
+#[37] ""  ""  ""  ""  ""  "" 
+#[43] ""  ""  ""  ""  ""  ""
+#[49] ""  ""  "" ""  ""  "" 
+#[55] ""  ""  ""  ""  ""  ""
+#[61] "" "" "" "" ""  "" 
+#[67] ""  ""  ""  ""  ""  "" 
+#[73] ""  ""  "" 
+dim(result) # 2211
+res <- result %>% filter(ID_1 != "CH5017X029301" & ID_1 != "CH5017X029302" & ID_1 != "CH5018X008561" &
+                    ID_1 != "DZ1021003884" & ID_1 != "DZ1021004350" & ID_1 != "EG1020001001" &
+                    ID_1 != "LY1017002826" & ID_1 != "LY1018003615" & ID_1 != "LY1019002074" &
+                    ID_1 != "LY1019005427" & ID_1 != "LY1019009209" & ID_1 != "LY1020005937" &
+                    ID_1 != "LY1020005982" & ID_1 != "LY1021006171" & ID_1 != "LY1021006863" &
+                    ID_1 != "LY1021007548" & ID_1 != "LY1021007767" & ID_1 != "LY1021008663" &
+                    ID_1 != "LY1021008993" & ID_1 != "LY1021010520" & ID_1 != "LY1021010615" &
+                    ID_1 != "LY1021011159" & ID_1 != "LY1021011513" & ID_1 != "LY1022001492" &
+                    ID_1 != "LY1022002734" & ID_1 != "LY1022004031" & ID_1 != "LY1022004033" &
+                    ID_1 != "MA1017002391" & ID_1 != "MA1018001175" & ID_1 != "MA1019001113" &
+                    ID_1 != "MA1019001234" & ID_1 != "MA1019002188" & ID_1 != "MA1020003273" &
+                    ID_1 != "MA1020003524" & ID_1 != "MA1020003929" & ID_1 != "MA1021001274" &
+                    ID_1 != "MA1021001348" & ID_1 != "MA1021001608" & ID_1 != "MA1021001859" &
+                    ID_1 != "MA1021001930" & ID_1 != "MA1021002702" & ID_1 != "MA1021002825" &
+                    ID_1 != "MA1021003343" & ID_1 != "MA1021003397" & ID_1 != "MA1021003875" &
+                    ID_1 != "MA1021003939" & ID_1 != "MA1021004177" & ID_1 != "ML1019X004589" &
+                    ID_1 != "MR1020002212" & ID_1 != "MR1020002251" & ID_1 != "MR1020X000871" &
+                    ID_1 != "MR1021001601" & ID_1 != "MR1022001155" & ID_1 != "MR1022001186" &
+                    ID_1 != "NE1018001196" & ID_1 != "NE1018001888" & ID_1 != "NE1018004403" &
+                    ID_1 != "NE1019002475" & ID_1 != "NE1019002484" & ID_1 != "NE1019X071222" &
+                    ID_1 != "NE1020X006991" & ID_1 != "NE1020X020753" & ID_1 != "NE1021X051030" &
+                    ID_1 != "NE1022X002609" & ID_1 != "SN1020001566" & ID_1 != "TD1021001049" &
+                    ID_1 != "TD1021001245" & ID_1 != "TD1021001356" & ID_1 != "TD1021001444" &
+                    ID_1 != "TD1021001618" & ID_1 != "TD1022001065" & ID_1 != "TD1022001219" &
+                    ID_1 != "TN1018001384" & ID_1 != "TN1020001880" & ID_1 != "TN1021002294" 
+                  | is.na(ID_1))
+
+
+# LY1017002826
+
+# 1,998 x 31
+
+# This is 2,211 - 213 = 1,998 indeed
+
+# Furthermore, we have 2,073 - 1,998 =  75 less participants than in initial data indeed!
+
+
+
+
+
+write_excel_csv(res, 'data_clean/res2.csv')
+
+
+# LY1018003615
+
+
+
+kobo %>% group_by(`Age (l'enquête est destinée aux personnes agées de 14 ans et plus)`) %>% summarise(count = n())
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+########## v 2 ##################################################################################################################################
+
+
+
+
+
+
+# Stack########################################################################
+
+# 'Mimosa'
+df1 <- data.frame(
+  ID_1 = c('NE1', 'NE2', 'LR2', 'NE4', 'WE5'),
+  ID_2 = c('WW1', 'NE3', 'LR2', 'NE5', 'WE5'),
+  Country = c('Togo', 'USA', 'Iceland', 'Chad', 'UK'))
+df1
+
+
+# 'Kobo'
+df2 <- data.frame(
+  ID_1 = c('NE1', 'NE3', 'LR2', 'NE6'),
+  Sex = c('M', 'F', 'M', 'M'))
+df2
+
+
+
+
+# Desired output:
+
+#     ID_1    Country   Sex
+# 1   NE1     Togo      M     --> based on ID_1 of df1
+# 2   NE3     USA       F     --> based on ID_2 of df1
+# 3   LR2     Iceland   M     --> based on both ID_1 and ID_2 of df1
+# 4   NE6     <NA>      M     --> no match but row is kept (right join)
+
+
+dput(df1)
+df1 <- structure(list(ID_1 = c("NE1", "NE2", "LR2", "NE4", "WE5"), ID_2 = c("WW1", 
+                                                                            "NE3", "LR2", "NE5", "WE5"), Country = c("Togo", "USA", "Iceland", 
+                                                                                                                     "Chad", "UK")), class = "data.frame", row.names = c(NA, -5L))
+
+
+dput(df2)
+df2 <- structure(list(ID_1 = c("NE1", "NE3", "LR2", "NE6"), Sex = c("M", 
+                                                                    "F", "M", "M")), class = "data.frame", row.names = c(NA, -4L))
+
+
+df1
+df2
+
+
+# Solution:
+
+# a
+df2 %>%  
+  left_join(distinct_all(select(pivot_longer(df1, -Country, values_to = "ID_1"), -name)))
+
+# b
+df1 <- df1 %>% 
+  pivot_longer(-Country, values_to = "ID_1") %>% 
+  select(-name) %>%  
+  distinct_all()
+
+df2 %>% 
+  left_join(df1)
+
+
+
+# See also
+# https://stackoverflow.com/questions/73968384/how-to-join-rows-that-match-any-of-multiple-columns?rq=2
+
+
+df1 %>% 
+  pivot_longer(c(ID_1, ID_2), values_to = "ID_1") %>% 
+  select(-name) %>%  
+  distinct_all()
+
+df1
+
+
+################################################################################
+
+
+# 1. MIMOSA ####
+
+# Check perfect duplicates
+sum(duplicated(mimosa)) # 0
+
+
+# Check duplicates in caseno
+sum(duplicated(mimosa$caseno)) # 21,907
+# Check duplicates in MemberNo
+sum(duplicated(mimosa$MemberNo)) # 0
+
+
+mimosa_slim <- mimosa %>% select(
+  # SELECT
+  caseno,
+  MemberNo,
+  `Niveau microbusiness`,
+  `Niveau de formation`,
+  `Type de formation`,
+  `Duree formation`
+) %>% 
+  # RENAME
+  rename(
+    "ID_1" = 
+      caseno,
+    "ID_2" = 
+      MemberNo
+  )
+  
+
+# 2. KOBO ####
+
+# Check perfect duplicates
+sum(duplicated(kobo)) # 0
+
+# Check duplicates in Identifiant MiMOSA du cas bis
+sum(duplicated(kobo$`Identifiant MiMOSA du cas bis`)) # 137, corresponding to blanks
+# Check duplicates in Identifiant MiMOSA du cas
+sum(duplicated(kobo$`Identifiant MiMOSA du cas`)) # 68
+
+kobo_slim <- kobo %>% select(
+  # SELECT
+  `Identifiant MiMOSA du cas bis`,
+  Sexe,
+  `Pays d’où le migrant est de retour :`,
+  `Combien de temps entre votre retour et la réception de l’aide à la réintégration (ou sa première fourniture) ? En semaines`
+  
+) %>% 
+  # RENAME
+  rename("ID_1" = 
+           `Identifiant MiMOSA du cas bis`
+    
+  )
+
+
+mimosa_slim
+kobo_slim
+
+
+# Implement stack here: #########################
+
+
+
+mimosa_test <- mimosa_slim %>% 
+  pivot_longer(c(ID_1, ID_2), values_to = "ID_1") %>% 
+  select(-name) %>% 
+  distinct_all()
+
+
+
+result <- kobo_slim %>% left_join(mimosa_test)
+result
+dim(result) # 2,120, which is 2,120 - 2,073 = 47 more rows than in initial data!
+
+colSums(is.na(result)) # ID_1 = 138, corresponding to blanks
+
+sum(duplicated(result)) # 135, weird
+result[duplicated(result), ]
+
+
+sum(duplicated(result$ID_1)) # 184
+result[duplicated(result$ID_1), ]
+
+
+##################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 3. MERGE ####
+
+# Objects dimensions
+dim(mimosa_slim) # 222,379 x 3
+dim(kobo_slim)   #   2,073 x 2
+
+# Target dimension
+# 2,073 x 4
+
+# Compute intersect
+# Using caseno (renamed to ID) from Mimosa
+length(intersect(mimosa_slim$ID, kobo_slim$ID)) # 1,235
+# Using MemberNo from Mimosa
+length(intersect(mimosa_slim$MemberNo, kobo_slim$ID)) # 632
+
+# Note, Identifiant MiMOSA du cas bis (that is, kobo_slim ID) has 138 blanks
+
+
+
+
+
+
+
+res  <- merge(mimosa_slim, kobo_slim, by = 'ID')
+dim(res) # 1,373 x 4 (1235 + 138 blanks = 1,373 indeed)
+
+
+view(res)
+
+colSums(is.na(res))
+
+################################################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# We'll do a right join, keeping all rows from kobo_slim
+res <- merge(mimosa_slim, kobo_slim, by='ID', all.y = TRUE)
+
+# Dimensions
+dim(rss) # 1,385 x 214 --> as expected
+
+# Check perfect duplicates
+sum(duplicated(rss)) # 0
+# Check pseudo-duplicates
+sum(duplicated(rss$ID)) # 128
+# Note all these duplicates are NA, as expected
+rss[duplicated(rss$ID), "ID"]
+
+
+
+###############################################################################
+#################################### O L D ####################################
+###############################################################################
 
 # Reintegration Economic Survey ####
 res <- read_excel('data_raw/Reintegration Economic_clean 6.6.23_doublons corrigesV2.xlsx',
@@ -728,14 +1333,6 @@ colSums(is.na(df))
 #3 Placement emploi     1  0.0513
 # That said, it might be good to say in the report that nearly all assistance
 # received was for micro business.
-
-
-
-
-
-
-
-
 
 # Export
 #write_excel_csv(df, 'data_clean/res_slim.csv') # using extension .xls will avoid
