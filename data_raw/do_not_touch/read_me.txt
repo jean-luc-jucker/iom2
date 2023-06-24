@@ -1,7 +1,7 @@
 current version = ******************
 
 RES
-Has 5 versions:
+Has 6 versions:
 
 (1)
 ### Reintegration Economic_clean 6.6.23.xls ###
@@ -11,14 +11,15 @@ This version is no longer used. It was used in preparation_res_v1.R
 (2)
 ### Copy of Reintegration Economic_clean 6.6.23_doublons corriges.xls ###
 Received 20 June 2023
-Same data as (1) but with 77 partial duplicates removed. Current version, and is used in all
+Same data as (1) but with 77 partial duplicates removed. Was used in all
 preparation_res.R and exploration_res.R files that come after v1.
 
 (3)
-### Reintegration Economic_clean 6.6.23_doublons corrigesV2.xls ###
+### Reintegration Economic_clean 6.6.23_doublons corrigesV2.xlsx ### ******************
 Received 20 June 2023, a few hours after (2)
 Same data as (2) but with 3 more partial duplicates removed. Current version, and is used in all
-preparation_res.R and exploration_res.R files that come after v1.
+preparation_res_training.R and exploration_res_training.R files. These are the merged data
+using Mimosa for training variables, and Kobo for res data. Merge was done by client.
 
 
 (4)
@@ -31,7 +32,7 @@ Received 21 June 2023
 This is the MIMOSA data (file 1). It is used for merge in preparation_res.R (all
 versions after preparation_res_v2.R)
 
-### RE_Economic_Survey_clean for data analysis.xlsx ### ******************
+### RE_Economic_Survey_clean for data analysis.xlsx ###
 
 Received 21 June 2023
 This is the KOBO data (file 2). It is used for merge in preparation_res.R (all
@@ -39,13 +40,25 @@ versions after preparation_res_v2.R)
 
 (5)
 
-### MIMOSA Reint Cases M&E-eco v2 identification #### ******************
+### MIMOSA Reint Cases M&E-eco v2 identification.xlsx ####
 
 Received 22 June 2023
 
 This is the MIMOSA data (file 1). It is used for merge in preparation_res.R (all
 versions after preparation_res_v3.R).
 It replaces version 4, i.e., MIMOSA Reint Cases M&E-eco.xlsx
+
+
+(6)
+
+### RE_Economic_Survey_clean for data analysis_final.xlsx ### ******************
+
+Received 23 June 2023
+
+This is exactly the same file as (4) RE_Economic_Survey_clean for data analysis.xlsx, but
+I asked to client the resend it to me. Extension '_final' was added by me.
+This is the kobo data only, since we do not do a merge ourselves, finally.
+
 
 ------------------------------------------------------------------------------------------------
 

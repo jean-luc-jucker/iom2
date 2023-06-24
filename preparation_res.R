@@ -1,11 +1,12 @@
-# Main difference from v1: we use a new dataset with 77 pseudo duplicates removed.
+# Main difference from all previous versions: We no longer do a merge, and use only
+# Kobo data, following discussion with client. All training variables are dropped.
 
 getwd()
 library(readxl)
 library(tidyverse)
 
 # Reintegration Economic Survey ####
-res <- read_excel('data_raw/Reintegration Economic_clean 6.6.23_doublons corrigesV2.xlsx',
+res <- read_excel('data_raw/RE_Economic_Survey_clean for data analysis_final.xlsx',
                   na = c('N/A', 'NA', 'na')) 
 warnings()
 dim(res) #   2,001 x 154

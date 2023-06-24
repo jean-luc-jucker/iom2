@@ -1,4 +1,6 @@
-# Main difference from v1: we use a new dataset with 77 pseudo duplicates removed.
+# Main difference from all previous versions: We use again the data merged by the client.
+# This file is only to be able to run some analyses on training variables. It will need to 
+# be noted that this merge data might be corrupt or at least imperfect.
 
 getwd()
 library(readxl)
