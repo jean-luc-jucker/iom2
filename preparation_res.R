@@ -6,14 +6,14 @@ library(readxl)
 library(tidyverse)
 
 # Reintegration Economic Survey ####
-res <- read_excel('data_raw/RE_Economic_Survey_clean for data analysis_final.xlsx',
+kobo <- read_excel('data_raw/RE_Economic_Survey_clean for data analysis_final.xlsx',
                   na = c('N/A', 'NA', 'na')) 
 warnings()
-dim(res) #   2,073 x 154
+dim(kobo) #   2,073 x 154
 # Previously 2,001 x 154
 
 # Subset ####
-df <- res %>% 
+res <- kobo %>% 
   select(
     # Metadata
     "Identifiant MiMOSA du cas bis",
@@ -52,7 +52,7 @@ df <- res %>%
     "InterviewType" =
       "Mode d'enquête",
     # Dependent variables
-    "BusinessSucess" =
+    "BusinessSuccess" =
       "Comment se porte votre entreprise ou business actuellement ?",
     "BusinessProfitability" =
       "L’entreprise vous permet -elle de gagner assez d’argent pour subvenir à vos besoins et à celle de votre famille ?",
@@ -98,74 +98,81 @@ df <- res %>%
   # Filter out NL countries (Togo = 8, Sierra-Leone = 45)
   filter(Country != 'Togo' & Country != 'Sierra-Leone')
 
-dim(df) # 2,026 x 23
+dim(res) # 2,026 x 23
 # Previously 1948 x 32
-#view(df)
+#view(res)
 
 # NA
-colSums(is.na(df))
+colSums(is.na(res))
 
 # Dupes
 
 # Perfect
-sum(duplicated(df)) # 0
+sum(duplicated(res)) # 0
 # Previously 0
 
 # Pseudo
-sum(duplicated(df$MimosaID)) # 132
+sum(duplicated(res$MimosaID)) # 132
 # Previously 95
-df[duplicated(df$MimosaID), 'MimosaID'] %>% print(n = 132)
+res[duplicated(res$MimosaID), 'MimosaID'] %>% print(n = 132)
 # Note, they are all NA, as expected
 
 # Data types
-str(df)
+str(res)
 # MigrationDuration     chr --> needs to be converted *
 # TimeToReceiveSupport  chr --> needs to be converted # no longer exists
 # SupportDuration       num # no longer exists
 # TrainingDuration      num # no longer exists
 
 # Check levels before
-df %>% group_by(MigrationDuration) %>% summarise(count = n()) %>% print(n = 33) # --> all are numbers,
+res %>% group_by(MigrationDuration) %>% summarise(count = n()) %>% print(n = 33) # --> all are numbers,
 # with also 114 NA, which we'll convert to median later
 
 # Converting to numeric could produce NA
 # Print before
-colSums(is.na(df))
+colSums(is.na(res))
 # MigrationDuration     114
 
 
 # Character to Numeric
-df$MigrationDuration <- as.numeric(df$MigrationDuration)
+res$MigrationDuration <- as.numeric(res$MigrationDuration)
 
 # Print after
-colSums(is.na(df))
+colSums(is.na(res))
 # MigrationDuration     still 114, all good
 
 
 # Check levels after
-df %>% group_by(MigrationDuration) %>% summarise(count = n()) %>% print(n = 29) # --> we see, e.g.,
+res %>% group_by(MigrationDuration) %>% summarise(count = n()) %>% print(n = 29) # --> we see, e.g.,
 # that count of 3 is 255, which are the 253 3 plus 2 03 from above
+
+
+# Export
+write_excel_csv(res, 'data_clean/res.csv') # using extension .xls will avoid
+# wrapping, but will produce unsafe warning, so we use .csv
+# RDS version
+saveRDS(res, file = 'data_clean/res.rds')
 
 
 # Recode dependent variables
 
 # Print levels
-levels(as.factor(df$BusinessSucess))
-levels(as.factor(df$BusinessProfitability))
-levels(as.factor(df$WouldMigrateAgain))
+levels(as.factor(res$BusinessSuccess))
+levels(as.factor(res$BusinessProfitability))
+levels(as.factor(res$WouldMigrateAgain))
 
 # Print counts
-df %>% group_by(BusinessSucess) %>% summarise(count = n()) %>%
+res %>% group_by(BusinessSuccess) %>% summarise(count = n()) %>%
   mutate(percent = count/sum(count)*100) %>% arrange(-percent)
-df %>% group_by(BusinessProfitability) %>% summarise(count = n()) %>%
+res %>% group_by(BusinessProfitability) %>% summarise(count = n()) %>%
   mutate(percent = count/sum(count)*100) %>% arrange(-percent)
-df %>% group_by(WouldMigrateAgain) %>% summarise(count = n()) %>%
+res %>% group_by(WouldMigrateAgain) %>% summarise(count = n()) %>%
   mutate(percent = count/sum(count)*100) %>% arrange(-percent)
 
-df <- df %>% mutate(
-  BusinessSucess =
-    case_when(BusinessSucess == 'Actuellement ouvert et les activités marchent bien' ~ 'High',
-              BusinessSucess != 'Actuellement ouvert et les activités marchent bien' ~ 'Low'),
+res <- res %>% mutate(
+  BusinessSuccess =
+    case_when(BusinessSuccess == 'Actuellement ouvert et les activités marchent bien' ~ 'High',
+              BusinessSuccess != 'Actuellement ouvert et les activités marchent bien' ~ 'Low'),
   BusinessProfitability =
     case_when(BusinessProfitability == 'Oui' ~ 'High',
               BusinessProfitability != 'Oui' ~ 'Low'),
@@ -175,16 +182,16 @@ df <- df %>% mutate(
 )
 
 # Reprint counts
-df %>% group_by(BusinessSucess) %>% summarise(count = n()) %>%
+res %>% group_by(BusinessSuccess) %>% summarise(count = n()) %>%
   mutate(percent = count/sum(count)*100) %>% arrange(-percent)
-df %>% group_by(BusinessProfitability) %>% summarise(count = n()) %>%
+res %>% group_by(BusinessProfitability) %>% summarise(count = n()) %>%
   mutate(percent = count/sum(count)*100) %>% arrange(-percent)
-df %>% group_by(WouldMigrateAgain) %>% summarise(count = n()) %>%
+res %>% group_by(WouldMigrateAgain) %>% summarise(count = n()) %>%
   mutate(percent = count/sum(count)*100) %>% arrange(-percent)
 
 
 # Assess NA
-colSums(is.na(df))
+colSums(is.na(res))
 
 
 # Recode Independent variables
@@ -201,13 +208,13 @@ colSums(is.na(df))
 # The below section was revised after client recoding some of these variables,
 # notably, BusinessType
 
-colSums(is.na(df))
+colSums(is.na(res))
 
 # Before
-df %>% group_by(CoronaImpactOnBusiness) %>% summarise(count = n()) %>% 
+res %>% group_by(BusinessType) %>% summarise(count = n()) %>% 
   mutate(percent = count/sum(count)*100) %>% arrange(-percent) %>% print(n=21)
 
-df <- df %>% mutate(
+res <- res %>% mutate(
   
   # RECODE
   InterviewType = 
@@ -301,7 +308,7 @@ df <- df %>% mutate(
          )
 
 # After
-df %>% group_by(CoronaImpactOnBusiness) %>% summarise(count = n()) %>% 
+res %>% group_by(BusinessType) %>% summarise(count = n()) %>% 
   mutate(percent = count/sum(count)*100) %>% arrange(-percent)
 
 
@@ -311,104 +318,109 @@ df %>% group_by(CoronaImpactOnBusiness) %>% summarise(count = n()) %>%
 # Definition: "Durée de l’absence du pays d’origine   Mettre 0 si moins d'un an"
 # In years
 # NA
-sum(is.na(df$MigrationDuration)) # 114
+sum(is.na(res$MigrationDuration)) # 114
 # Previously 110
 
 # Summarise
-summary(df$MigrationDuration)
+summary(res$MigrationDuration)
 # Check no values are under zero
-df[df$MigrationDuration <= 0, "MigrationDuration"] %>% arrange(MigrationDuration) %>% 
+res[res$MigrationDuration <= 0, "MigrationDuration"] %>% arrange(MigrationDuration) %>% 
   print(n=565) # 565, with 451 zeros and 114 NA
 # Previously 541, with 431 zero and 110 NA
 
 # First, we'll replace these 3 values, which are mistakes and not outliers,
 # with NA
-df[order(df$MigrationDuration, decreasing=TRUE), 'MigrationDuration'][0:3,]
-df[df$MigrationDuration >= 936 & !is.na(df$MigrationDuration), 'MigrationDuration']  <- NA
-sum(is.na(df$MigrationDuration)) # 117 --> as expected
+res[order(res$MigrationDuration, decreasing=TRUE), 'MigrationDuration'][0:3,]
+res[res$MigrationDuration >= 936 & !is.na(res$MigrationDuration), 'MigrationDuration']  <- NA
+sum(is.na(res$MigrationDuration)) # 117 --> as expected
 # Let's re-summarise
-summary(df$MigrationDuration)
+summary(res$MigrationDuration)
 # And let's store the median
-q_median <- median(df$MigrationDuration, na.rm = TRUE)
+q_median <- median(res$MigrationDuration, na.rm = TRUE)
 q_median # 2 years
 
 
 # Make a boxplot (IQR)
 
 # Boxplot has a function to detect outliers
-outliers <- boxplot.stats(df$MigrationDuration)$out
-out_ind <- which(df$MigrationDuration %in% c(outliers))
+outliers <- boxplot.stats(res$MigrationDuration)$out
+out_ind <- which(res$MigrationDuration %in% c(outliers))
 out_ind
 
 # Print outliers
-df[out_ind, "MigrationDuration"] %>% arrange(MigrationDuration) # 132, with
+res[out_ind, "MigrationDuration"] %>% arrange(MigrationDuration) # 132, with
 # smallest being 7 years
 # Previously 130, with smallest being 7 years
 
 # Plot outliers
-boxplot(df$MigrationDuration,
+boxplot(res$MigrationDuration,
         ylab = "Years",
         main = "MigrationDuration"
 )
 
 # Spot outliers using percentile method, with conservative threshold of 0.01/0.99
-lower_bound <- quantile(df$MigrationDuration, 0.01, na.rm = TRUE)
-upper_bound <- quantile(df$MigrationDuration, 0.99, na.rm = TRUE)
-outlier_ind <- which(df$MigrationDuration < lower_bound | df$MigrationDuration > upper_bound)
-df[outlier_ind, "MigrationDuration"] %>% arrange(MigrationDuration) # 18, with smallest being 15 years
+lower_bound <- quantile(res$MigrationDuration, 0.01, na.rm = TRUE)
+upper_bound <- quantile(res$MigrationDuration, 0.99, na.rm = TRUE)
+outlier_ind <- which(res$MigrationDuration < lower_bound | res$MigrationDuration > upper_bound)
+res[outlier_ind, "MigrationDuration"] %>% arrange(MigrationDuration) # 18, with smallest being 15 years
 # Previously 18, with smallest being 15 years
 
 
 # Replace 18 extreme outliers with median
-df[outlier_ind, "MigrationDuration"] <- q_median
+res[outlier_ind, "MigrationDuration"] <- q_median
 
 # Re-summarise
-summary(df$MigrationDuration) # median still 2, max 14 years as expected
+summary(res$MigrationDuration) # median still 2, max 14 years as expected
 # Replot
-outliers <- boxplot.stats(df$MigrationDuration)$out
-out_ind <- which(df$MigrationDuration %in% c(outliers))
-boxplot(df$MigrationDuration,
+outliers <- boxplot.stats(res$MigrationDuration)$out
+out_ind <- which(res$MigrationDuration %in% c(outliers))
+boxplot(res$MigrationDuration,
         ylab = "Years",
         main = "MigrationDuration"
 )
 # It is looking better
 # We should still have the same number of NA
-sum(is.na(df$MigrationDuration)) # 117 --> as expected
+sum(is.na(res$MigrationDuration)) # 117 --> as expected
 # And we will also replace them with the median
-df[is.na(df$MigrationDuration), "MigrationDuration"] <- q_median
+res[is.na(res$MigrationDuration), "MigrationDuration"] <- q_median
 # Final summary and plot
-summary(df$MigrationDuration) # median still 2, max still 14 years
-outliers <- boxplot.stats(df$MigrationDuration)$out
-out_ind <- which(df$MigrationDuration %in% c(outliers))
-boxplot(df$MigrationDuration,
+summary(res$MigrationDuration) # median still 2, max still 14 years
+outliers <- boxplot.stats(res$MigrationDuration)$out
+out_ind <- which(res$MigrationDuration %in% c(outliers))
+boxplot(res$MigrationDuration,
         ylab = "Years",
         main = "MigrationDuration"
 )
 # As above
 # Check no NA are remaining
-sum(is.na(df$MigrationDuration)) # 0, all good
+sum(is.na(res$MigrationDuration)) # 0, all good
 
-
-
-
-
-
-
-# Ask Julie if the above makes sense
-
-
-
-
- 
 
 # Assess NA
-colSums(is.na(df))
+dim(res) # 2,026 x 23
+colSums(is.na(res))
 
 
-# I am here on Saturday eve. I see there are 74 na for 2 of our main dependent
-# variables of interest, which is why we had decided to merge oursevles
+# Drop NA
+res <- res %>% drop_na(BusinessSuccess, WouldMigrateAgain, Gender, CountryOfReturn,
+                     BusinessType, ReceivedIOMBusinessAdvice, FirstChoice)
 
-dim(df)
+# Reassess NA
+colSums(is.na(res))
+# None are remaining except for the ID, but we won't use it in regression,
+# so we are good.
+
+# Print size
+dim(res) # 1,917 x 23
+# We therefore lost 2,026 - 1,917 = 109 cases
+
+
+# Export
+write_excel_csv(res, 'data_clean/res_slim.csv') # using extension .xls will avoid
+# wrapping, but will produce unsafe warning, so we use .csv
+# RDS version
+saveRDS(res, file = 'data_clean/res_slim.rds')
+
 
 
 # NOTES
@@ -421,21 +433,3 @@ dim(df)
 #3 Placement emploi     1  0.0513
 # That said, it might be good to say in the report that nearly all assistance
 # received was for micro business.
-
-
-
-
-
-
-
-
-
-# Export
-#write_excel_csv(df, 'data_clean/res_slim.csv') # using extension .xls will avoid
-# wrapping, but will produce unsafe warning, so we use .csv
-# RDS version
-#saveRDS(df, file = 'data_clean/res_slim.rds')
-
-
-
-
