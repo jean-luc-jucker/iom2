@@ -760,11 +760,103 @@ rss_slim <- rss %>%
 
 # WE ARE HERE
 
+# NA
+#colSums(is.na(rss_slim))
+
+# Recode Independent variables
+
+# Principles:
+# Answers who represent less than 15% of all answers are grouped together
+# Exceptions:
+# sex (female=14%), since this is a crucial variable
+# origin_country, kept all above 10%
+
+colSums(is.na(rss_slim))
+
+
+# Before
+rss_slim %>% group_by(VOTs) %>% summarise(count = n()) %>% 
+  mutate(percent = count/sum(count)*100) %>% arrange(-percent) %>% print(n=21)
+
+# HealthCondition: 59 yes
+# EconomicSupport: 4 no
+# FinancialServices: 345 yes --> keep
+# JobPlacement: 2 yes
+# Microbusiness: 2 no
+# Training: 581 no --> keep
+# SocialSupport: 198 yes --> keep
+# ChildCare: 2 yes
+# Education: 4 yes
+# Housing: 19 yes
+# LegalServices: 39 yes
+# MaterialAssistance : 154 yes --> keep
+# MedicalSupport: 193 yes --> keep
+# SocialProtectionSchemes: 1 yes
+# PsychosocialSupport: 434 yes --> keep
+# Microbusinesslevel: 32 (2 categories)
+# MicrobusinessDeliveredBy: 23 smallest
+# MicrobusinessFormOfAssistance 186 smallest --> keep (note 262 NA, though)
+
+
+
+rss_slim <- rss_slim %>% mutate(
+  
+  # RECODE
+  return_country = 
+    case_when(
+      return_country != "Libye" & return_country != "Niger" & return_country != "Algérie"  ~ 'Autre',
+      TRUE ~ as.character(return_country)
+    ),
+  
+  origin_country = 
+    case_when(
+      origin_country != "Niger" & origin_country != "Guinee Conakry" & origin_country != "Mali" & origin_country != "Tchad"  ~ 'Autre',
+      TRUE ~ as.character(origin_country)
+    ),
+  
+  VOTs = 
+    case_when(VOTs == 'Yes' ~ 'Unknown',
+    TRUE ~ as.character(VOTs) # Only 27 Yes, we therefore decide to group
+    # them with the 189 NA, to avoid losing a lot of data         
+    ),
+  
+  UMINOR = 
+    case_when(UMINOR == 'Yes' ~ 'Unknown',
+    TRUE ~ as.character(UMINOR) # Only 6 Yes, we therefore decide to group
+    # them with the 189 NA, to avoid losing a lot of data         
+    ),
+  
+  
+  
+) %>% 
+  
+  # REPLACE NA
+  mutate(VOTs = replace_na(VOTs, "Unknown"), # Only 27 Yes, we therefore decide to group
+         # them with the 189 NA, to avoid losing a lot of data
+         UMINOR = replace_na(UMINOR, "Unknown"), # Only 6 Yes, we therefore decide to group
+         # them with the 189 NA, to avoid losing a lot of data
+         
+  )
+
+# After
+rss_slim %>% group_by(HealthCondition) %>% summarise(count = n()) %>% 
+  mutate(percent = count/sum(count)*100) %>% arrange(-percent)
+
+
+# Outliers; fill NA in numeric variables
+
+
+
+
+
+
+
+
 
 # Export slim data
-write_excel_csv(rss_slim, 'data_clean/rss_slim.csv')
+#write_excel_csv(rss_slim, 'data_clean/rss_slim.csv')
 # RDS version
-saveRDS(rss_slim, file = 'data_clean/rss_slim.rds')
+#saveRDS(rss_slim, file = 'data_clean/rss_slim.rds')
 
 
 ###############################################################################
