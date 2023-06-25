@@ -142,8 +142,6 @@ colSums(is.na(df))
 # Perfect
 sum(duplicated(df)) # 0
 # Previously 2
-dim(df) # 1948 x 33
-# Previously 1957 x 33
 
 # Pseudo
 sum(duplicated(df$MimosaID)) # 95
@@ -190,6 +188,15 @@ df %>% group_by(MigrationDuration) %>% summarise(count = n()) %>% print(n = 31) 
 # that count of 3 is 252, which are the 251 3 plus 1 03 from above
 df %>% group_by(TimeToReceiveSupport) %>% summarise(count = n()) %>% print(n = 116) # we see, e.g.,
 # that count of 160 is now 4, which are the three cases from above plus the 160 which manually corrected
+
+
+# Export
+write_excel_csv(df, 'data_clean/res_training.csv') # using extension .xls will avoid
+# wrapping, but will produce unsafe warning, so we use .csv
+# RDS version
+saveRDS(df, file = 'data_clean/res_training.rds')
+
+
 
 
 # Recode dependent variables
@@ -247,7 +254,7 @@ colSums(is.na(df))
 colSums(is.na(df))
 
 # Before
-df %>% group_by(FirstChoice) %>% summarise(count = n()) %>% 
+df %>% group_by(TrainingType) %>% summarise(count = n()) %>% 
   mutate(percent = count/sum(count)*100) %>% arrange(-percent)
 
 df <- df %>% mutate(
@@ -367,22 +374,16 @@ df <- df %>% mutate(
   mutate(MicroBusinessLevel = replace_na(MicroBusinessLevel, "Unknown"), # to
          # avoid losing 336 obs
          BusinessHasEmployees = replace_na(BusinessHasEmployees, "Autre"),
-         EmployeeNumber = replace_na(EmployeeNumber, "0") # All NA are for respondents
+         EmployeeNumber = replace_na(EmployeeNumber, "0"), # All NA are for respondents
          # who do not have employees, so we can replace NA with 0
+         TrainingType = replace_na(TrainingType, "None") # important so as to not
+         # lose hundreds of respondents!
          )
 
 
 # After
-df %>% group_by(FirstChoice) %>% summarise(count = n()) %>% 
+df %>% group_by(TrainingType) %>% summarise(count = n()) %>% 
   mutate(percent = count/sum(count)*100) %>% arrange(-percent)
-
-
-
-
-
-
-
-
 
 
 # Outliers; fill NA in numeric variables
@@ -466,9 +467,6 @@ boxplot(df$MigrationDuration,
 sum(is.na(df$MigrationDuration)) # 0, all good
 
 
-
-
-
 # TimeToReceiveSupport
 # Definition: "Combien de temps entre votre retour et la réception de l’aide à
 # la réintégration (ou sa première fourniture) ? En semaines"
@@ -543,27 +541,32 @@ boxplot(df$TimeToReceiveSupport,
 sum(is.na(df$TimeToReceiveSupport)) # 0, all good
 
 
-
-
-
-
-# SupportDuration OUTSTANDING
+# SupportDuration (unsafe)
 # Definition: SupportDuration = as.numeric(difftime(InterviewDate,
 # ReintegrationDate, units = "days"
 # In days
 # NA
-sum(is.na(df$SupportDuration)) # 259
+sum(is.na(df$SupportDuration)) # 332
 
 # Summarise
 summary(df$SupportDuration)
 # Show smallest numbers, since some are negative
-df[df$SupportDuration <= 0, "SupportDuration"] %>% arrange(SupportDuration) # 332! Ask Julie
+df[df$SupportDuration <= 0, "SupportDuration"] %>% arrange(SupportDuration) %>% print(n=401) # 401! Ask Julie
+# 52 are negative, 17 are 0, and 332 are NA
 
-# Continue here
+# Here, the first thing we do is convert the negative numbers to NA
+# so that these won't bias the computation of the median
+df[df$SupportDuration < 0 & !is.na(df$SupportDuration), "SupportDuration"]  <- NA # 52
 
-# Let's store the median
+# NA should now be 332 + 52 = 384
+sum(is.na(df$SupportDuration)) # 384 indeed
+
+# And 0 should still be 17
+df[df$SupportDuration == 0 & !is.na(df$SupportDuration), "SupportDuration"] # 17 indeed
+
+# We can now store the median
 q_median <- median(df$SupportDuration, na.rm = TRUE)
-q_median # 113 days
+q_median # 120 days
 
 
 # Make a boxplot (IQR)
@@ -574,8 +577,8 @@ out_ind <- which(df$SupportDuration %in% c(outliers))
 out_ind
 
 # Print outliers
-df[out_ind, "SupportDuration"] %>% arrange(SupportDuration) # 209, with
-# smallest being -270 days (lower) or 540 days (upper)
+df[out_ind, "SupportDuration"] %>% arrange(SupportDuration) # 131, with
+# smallest being 651
 
 # Plot outliers
 boxplot(df$SupportDuration,
@@ -587,15 +590,15 @@ boxplot(df$SupportDuration,
 lower_bound <- quantile(df$SupportDuration, 0.01, na.rm = TRUE)
 upper_bound <- quantile(df$SupportDuration, 0.99, na.rm = TRUE)
 outlier_ind <- which(df$SupportDuration < lower_bound | df$SupportDuration > upper_bound)
-df[outlier_ind, "SupportDuration"] %>% arrange(SupportDuration) %>% print(n=34) # 34, with
-# smallest being 0 weeks (lower) or 180 (upper)
+df[outlier_ind, "SupportDuration"] %>% arrange(SupportDuration) %>% print(n=16) # 16, with
+# smallest being 1141
 
 
-# Replace 34 extreme outliers with median
+# Replace 16 extreme outliers with median
 df[outlier_ind, "SupportDuration"] <- q_median
 
 # Re-summarise
-summary(df$SupportDuration) # median still 16, max 176 weeks as expected
+summary(df$SupportDuration) # median still 120, max 1134 weeks as expected
 # Replot
 outliers <- boxplot.stats(df$SupportDuration)$out
 out_ind <- which(df$SupportDuration %in% c(outliers))
@@ -605,11 +608,11 @@ boxplot(df$SupportDuration,
 )
 # It is looking better
 # We should still have the same number of NA
-sum(is.na(df$SupportDuration)) # 206 --> as expected
+sum(is.na(df$SupportDuration)) # 384 --> as expected
 # And we will also replace them with the median
 df[is.na(df$SupportDuration), "SupportDuration"] <- q_median
 # Final summary and plot
-summary(df$SupportDuration) # median still 16, max still 176 weeks years
+summary(df$SupportDuration) # median still 120, max still 1134 weeks years
 outliers <- boxplot.stats(df$SupportDuration)$out
 out_ind <- which(df$SupportDuration %in% c(outliers))
 boxplot(df$SupportDuration,
@@ -621,16 +624,7 @@ boxplot(df$SupportDuration,
 sum(is.na(df$SupportDuration)) # 0, all good
 
 
-
-
-
-
-
-
-
-
-
-# TrainingDuration
+# TrainingDuration (unsafe)
 # Definition: TrainingDuration = as.numeric(difftime(TrainingEnd, TrainingStart,
 # units = "days")
 # In days
@@ -700,23 +694,63 @@ boxplot(df$TrainingDuration,
 # We should still have the same number of NA
 sum(is.na(df$TrainingDuration)) # 1378 --> as expected
 
-# But contrary to other variables, we do NOT replace them
+# We will replace them with 0, since these theoretically correspond to people
+# who did not received training. First, let's check this
 
+df[df$TrainingType == "None", ] # 1,381 as we had found above. There is therefore
+# a small difference.
 
+# Let's investigate further.
+df[df$TrainingType == "None" & !is.na(df$TrainingDuration), c("TrainingType", "TrainingDuration")]
+# We see that 3 participants who have apparently not received training have training
+# durations (of 0, 6, and 3 days). It is hard to know what to do here, but we decide
+# to simply convert them to NA for TrainingDuration
 
-# Ask Julie if the above makes sense
+df[df$TrainingType == "None" & !is.na(df$TrainingDuration), "TrainingDuration"]  <- NA
 
+# We should now have 1378 + 3 = 1381 NA for TrainingDuration
+sum(is.na(df$TrainingDuration)) # 1381 indeed
 
+# And we will now replace all these NA with 0, since these participants did not receive
+# any training
+df[is.na(df$TrainingDuration), "TrainingDuration"]  <- 0
 
+# We should end up with no NA
+sum(is.na(df$TrainingDuration)) # 0, all good
 
- 
+# That said, we note a crucial limitation with this computed variables, which is
+# that 167 respondents who have Other or Unknown training have zero for Training
+# Duration, which means that we cannot distinguish them from those who did not
+# received Training, but also have a 0, see below.
+df[df$TrainingType != "None" & df$TrainingDuration == 0, c("TrainingType", "TrainingDuration")]
+# This makes this computed variable quasi unusable.
+
 
 # Assess NA
+dim(df) # 1948 x 32
 colSums(is.na(df))
 
 
+# Drop NA
+df <- df %>% drop_na(BusinessProfitability, WouldMigrateAgain, Gender,
+                     ReceivedIOMBusinessAdvice, FirstChoice)
+
+# Reassess NA
+colSums(is.na(df))
+# None are remaining except for the ID, but we won't use it in regression,
+# so we are good.
+
+# Print size
+dim(df) # 1,836
+# We therefore lost 1948 - 1836 = 112 cases
 
 
+
+# Export
+write_excel_csv(df, 'data_clean/res_training_slim.csv') # using extension .xls will avoid
+# wrapping, but will produce unsafe warning, so we use .csv
+# RDS version
+saveRDS(df, file = 'data_clean/res_training_slim.rds')
 
 
 
@@ -730,21 +764,3 @@ colSums(is.na(df))
 #3 Placement emploi     1  0.0513
 # That said, it might be good to say in the report that nearly all assistance
 # received was for micro business.
-
-
-
-
-
-
-
-
-
-# Export
-#write_excel_csv(df, 'data_clean/res_slim.csv') # using extension .xls will avoid
-# wrapping, but will produce unsafe warning, so we use .csv
-# RDS version
-#saveRDS(df, file = 'data_clean/res_slim.rds')
-
-
-
-
