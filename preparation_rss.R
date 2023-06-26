@@ -775,27 +775,45 @@ colSums(is.na(rss_slim))
 
 
 # Before
-rss_slim %>% group_by(VOTs) %>% summarise(count = n()) %>% 
+rss_slim %>% group_by(MicrobusinessFormOfAssistance) %>% summarise(count = n()) %>% 
   mutate(percent = count/sum(count)*100) %>% arrange(-percent) %>% print(n=21)
 
-# HealthCondition: 59 yes
-# EconomicSupport: 4 no
-# FinancialServices: 345 yes --> keep
-# JobPlacement: 2 yes
-# Microbusiness: 2 no
-# Training: 581 no --> keep
-# SocialSupport: 198 yes --> keep
-# ChildCare: 2 yes
-# Education: 4 yes
-# Housing: 19 yes
-# LegalServices: 39 yes
-# MaterialAssistance : 154 yes --> keep
-# MedicalSupport: 193 yes --> keep
-# SocialProtectionSchemes: 1 yes
-# PsychosocialSupport: 434 yes --> keep
-# Microbusinesslevel: 32 (2 categories)
-# MicrobusinessDeliveredBy: 23 smallest
-# MicrobusinessFormOfAssistance 186 smallest --> keep (note 262 NA, though)
+
+# Variable-------------------------Levels ---Smallest -----NA -----Decision
+# sex: -------------------------------- 2 ------  195 ----- 0 ---> keep as is
+# return_country: -------------------- 20 --------- 1 ----- 0 ---> recode
+# origin_country: -------------------- 12 -------- 43 ----- 0 ---> recode
+# VOTs: ------------------------------- 2 -------- 27 --- 189 ---> drop variable
+# UMINOR: ----------------------------- 2 --------- 6 --- 189 ---> drop variable
+# HealthCondition:--------------------- 2 -------- 59 --- 189 ---> drop variable
+# CounsellingStatus:------------------- 5 ------- *70 --- 325 ---> drop variable
+# EconomicSupport:--------------------- 2 --------- 4 --- 189 ---> drop variable
+# FinancialServices:------------------- 2 ------- 345 --- 189 ---> keep variable, deal with NA (189)
+# JobPlacement:------------------------ 2 --------- 2 --- 189 ---> drop variable
+# Microbusiness:----------------------- 2 -------- 12 --- 189 ---> drop variable
+# Training:---------------------------- 2 ------- 581 --- 189 ---> keep variable, deal with NA (189)
+# SocialSupport:----------------------- 2 ------- 198 --- 189 ---> keep variable, deal with NA (189)
+# ChildCare:--------------------------- 2 --------- 2 --- 189 ---> drop variable
+# Education:--------------------------- 2 --------- 4 --- 189 ---> drop variable
+# Housing:----------------------------- 2 -------- 19 --- 189 ---> drop variable
+# LegalServices:----------------------- 2 -------- 39 --- 189 ---> drop variable
+# MaterialAssistance :----------------- 2 ------- 154 --- 189 ---> keep variable, deal with NA (189)
+# MedicalSupport:---------------------- 2 ------- 193 --- 189 ---> keep variable, deal with NA (189)
+# SocialProtectionSchemes:------------- 2 --------- 1 --- 189 ---> drop variable
+# PsychosocialSupport:----------------- 2 ------- 434 --- 189 ---> keep variable, deal with NA (189)
+# Microbusinesslevel:------------------ 3 ------- *33 --- 201 ---> drop variable
+# MicrobusinessDeliveredBy:------------ 2 -------- 23 --- 201 ---> drop variable
+# MicrobusinessFormOfAssistance:------- 3 ------- 186 --- 262 ---> keep variable, deal with NA (262)
+
+# Note, levels does NOT include NA level
+# *several categories, but cannot be combined
+
+
+
+dim(rss_slim) # 1385
+
+# If NA are dropped, 1385 - 189 = 1196
+
 
 
 
