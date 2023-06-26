@@ -148,10 +148,10 @@ res %>% group_by(MigrationDuration) %>% summarise(count = n()) %>% print(n = 29)
 
 
 # Export
-write_excel_csv(res, 'data_clean/res.csv') # using extension .xls will avoid
+#write_excel_csv(res, 'data_clean/res.csv') # using extension .xls will avoid
 # wrapping, but will produce unsafe warning, so we use .csv
 # RDS version
-saveRDS(res, file = 'data_clean/res.rds')
+#saveRDS(res, file = 'data_clean/res.rds')
 
 
 # Recode dependent variables
@@ -416,10 +416,58 @@ dim(res) # 1,917 x 23
 
 
 # Export
-write_excel_csv(res, 'data_clean/res_slim.csv') # using extension .xls will avoid
+#write_excel_csv(res, 'data_clean/res_slim.csv') # using extension .xls will avoid
 # wrapping, but will produce unsafe warning, so we use .csv
 # RDS version
-saveRDS(res, file = 'data_clean/res_slim.rds')
+#saveRDS(res, file = 'data_clean/res_slim.rds')
+
+
+# Check levels n before regression
+
+dim(res)
+
+levels_count <- res %>% group_by(BusinessSuccess, InterviewType, Country, CountryOfReturn,
+                Gender, AgeGroup,
+                 Disabled, ReceivedSupportAs, BusinessType, BusinessMembers,
+                 ReceivedIOMBusinessAdvice, BusinessHasEmployees, EmployeeNumber,
+                 CoronaImpactOnBusiness, FirstChoice
+                 ) %>% summarise(Count = n()) %>% arrange(Count)
+
+#write_excel_csv(levels_count, 'data_clean/levels_count_model_1.csv')
+
+
+
+levels_count %>% pivot_wider(names_from = BusinessSuccess, values_from = Count) %>% view()
+
+
+pivot
+
+
+# Crosstable
+
+library(crosstable)
+
+crosstable(res, cols = c(InterviewType, Country, CountryOfReturn, Gender, AgeGroup,
+                         Disabled, ReceivedSupportAs, BusinessType, BusinessMembers,
+                         ReceivedIOMBusinessAdvice, BusinessHasEmployees, EmployeeNumber,
+                         CoronaImpactOnBusiness, FirstChoice),
+           by = c(BusinessSuccess), 
+                  percent_digits = 0, percent_pattern = "{n}",
+                  showNA = 'ifany', label = FALSE) %>% print(n=40)
+
+
+# Will take forever:
+#crosstable(res, cols = c(BusinessSuccess),
+#           by = c(InterviewType, Country, CountryOfReturn, Gender, AgeGroup,
+#                  Disabled, ReceivedSupportAs, BusinessType, BusinessMembers,
+#                  ReceivedIOMBusinessAdvice, BusinessHasEmployees, EmployeeNumber,
+#                  CoronaImpactOnBusiness, FirstChoice), 
+#           percent_digits = 0, percent_pattern = "{n}",
+#           showNA = 'ifany', label = FALSE)
+
+
+
+crosst
 
 
 
