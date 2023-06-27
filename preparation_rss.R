@@ -726,7 +726,7 @@ rss_slim <- rss %>%
          
          # (b) Categorical
          sex,
-         age,
+         age, # --> to convert to num in due time
          return_country,
          origin_country,
          VOTs,
@@ -775,7 +775,7 @@ colSums(is.na(rss_slim))
 
 
 # Before
-rss_slim %>% group_by(MicrobusinessFormOfAssistance) %>% summarise(count = n()) %>% 
+rss_slim %>% group_by(FinancialServices) %>% summarise(count = n()) %>% 
   mutate(percent = count/sum(count)*100) %>% arrange(-percent) %>% print(n=21)
 
 
@@ -788,29 +788,29 @@ rss_slim %>% group_by(MicrobusinessFormOfAssistance) %>% summarise(count = n()) 
 # HealthCondition:--------------------- 2 -------- 59 --- 189 ---> drop variable
 # CounsellingStatus:------------------- 5 ------- *70 --- 325 ---> drop variable
 # EconomicSupport:--------------------- 2 --------- 4 --- 189 ---> drop variable
-# FinancialServices:------------------- 2 ------- 345 --- 189 ---> keep variable, deal with NA (189)
+# FinancialServices:------------------- 2 ------- 345 --- 189 ---> keep variable, fill NA (189)
 # JobPlacement:------------------------ 2 --------- 2 --- 189 ---> drop variable
 # Microbusiness:----------------------- 2 -------- 12 --- 189 ---> drop variable
-# Training:---------------------------- 2 ------- 581 --- 189 ---> keep variable, deal with NA (189)
-# SocialSupport:----------------------- 2 ------- 198 --- 189 ---> keep variable, deal with NA (189)
+# Training:---------------------------- 2 ------- 581 --- 189 ---> keep variable, fill NA (189)
+# SocialSupport:----------------------- 2 ------- 198 --- 189 ---> keep variable, fill NA (189)
 # ChildCare:--------------------------- 2 --------- 2 --- 189 ---> drop variable
 # Education:--------------------------- 2 --------- 4 --- 189 ---> drop variable
 # Housing:----------------------------- 2 -------- 19 --- 189 ---> drop variable
 # LegalServices:----------------------- 2 -------- 39 --- 189 ---> drop variable
-# MaterialAssistance :----------------- 2 ------- 154 --- 189 ---> keep variable, deal with NA (189)
-# MedicalSupport:---------------------- 2 ------- 193 --- 189 ---> keep variable, deal with NA (189)
+# MaterialAssistance :----------------- 2 ------- 154 --- 189 ---> keep variable, fill NA (189)
+# MedicalSupport:---------------------- 2 ------- 193 --- 189 ---> keep variable, fill NA (189)
 # SocialProtectionSchemes:------------- 2 --------- 1 --- 189 ---> drop variable
-# PsychosocialSupport:----------------- 2 ------- 434 --- 189 ---> keep variable, deal with NA (189)
+# PsychosocialSupport:----------------- 2 ------- 434 --- 189 ---> keep variable, fill NA (189)
 # Microbusinesslevel:------------------ 3 ------- *33 --- 201 ---> drop variable
 # MicrobusinessDeliveredBy:------------ 2 -------- 23 --- 201 ---> drop variable
-# MicrobusinessFormOfAssistance:------- 3 ------- 186 --- 262 ---> keep variable, deal with NA (262)
+# MicrobusinessFormOfAssistance:------- 3 ------- 186 --- 262 ---> keep variable, fill NA (262)
 
-# Note, levels does NOT include NA level
+# Note, levels do NOT include NA level
 # *several categories, but cannot be combined
 
 
 
-dim(rss_slim) # 1385
+dim(rss_slim) # 1385 x 34
 
 # If NA are dropped, 1385 - 189 = 1196
 
@@ -830,41 +830,341 @@ rss_slim <- rss_slim %>% mutate(
     case_when(
       origin_country != "Niger" & origin_country != "Guinee Conakry" & origin_country != "Mali" & origin_country != "Tchad"  ~ 'Autre',
       TRUE ~ as.character(origin_country)
-    ),
-  
-  VOTs = 
-    case_when(VOTs == 'Yes' ~ 'Unknown',
-    TRUE ~ as.character(VOTs) # Only 27 Yes, we therefore decide to group
-    # them with the 189 NA, to avoid losing a lot of data         
-    ),
-  
-  UMINOR = 
-    case_when(UMINOR == 'Yes' ~ 'Unknown',
-    TRUE ~ as.character(UMINOR) # Only 6 Yes, we therefore decide to group
-    # them with the 189 NA, to avoid losing a lot of data         
-    ),
-  
-  
-  
+    )
+
 ) %>% 
   
-  # REPLACE NA
-  mutate(VOTs = replace_na(VOTs, "Unknown"), # Only 27 Yes, we therefore decide to group
-         # them with the 189 NA, to avoid losing a lot of data
-         UMINOR = replace_na(UMINOR, "Unknown"), # Only 6 Yes, we therefore decide to group
-         # them with the 189 NA, to avoid losing a lot of data
+  # FILL NA
+  mutate(MicrobusinessFormOfAssistance = replace_na(MicrobusinessFormOfAssistance, 'Unknown'),
+         FinancialServices = replace_na(FinancialServices, 'Unknown'), 
+         Training = replace_na(Training, 'Unknown'),
+         SocialSupport = replace_na(SocialSupport, 'Unknown'),
+         MaterialAssistance = replace_na(MaterialAssistance, 'Unknown'),
+         MedicalSupport = replace_na(MedicalSupport, 'Unknown'),
+         PsychosocialSupport = replace_na(PsychosocialSupport, 'Unknown'),
+         
+         ) %>% 
+  
+  # DROP VARIABLES
+  select(-c(VOTs, UMINOR, HealthCondition, CounsellingStatus, EconomicSupport,
+            JobPlacement, Microbusiness, ChildCare, Education, Housing,
+            LegalServices, SocialProtectionSchemes, Microbusinesslevel,
+            MicrobusinessDeliveredBy)
          
   )
 
 # After
-rss_slim %>% group_by(HealthCondition) %>% summarise(count = n()) %>% 
+rss_slim %>% group_by(FinancialServices) %>% summarise(count = n()) %>% 
   mutate(percent = count/sum(count)*100) %>% arrange(-percent)
 
 
+dim(rss_slim) # 1,385 x 20 (14 columns less, as expected)
+
+
+# NA
+colSums(is.na(rss_slim))
+
+
+str(rss_slim)
+
 # Outliers; fill NA in numeric variables
 
+# Variables to process
+
+# Age (years)
+# Not computed
+
+# To be converted to num first
+# Conversion might coerce to NA; check NA count before
+sum(is.na(rss_slim$age)) # 0
+# Print levels before
+rss_slim %>% group_by(age) %>% summarise(count = n()) %>% print(n=58)
+# Convert to number
+rss_slim$age  <- as.numeric(rss_slim$age)
+# Print levels after
+rss_slim %>% group_by(age) %>% summarise(count = n()) %>% print(n=58) # all good
+# Check NA count after
+sum(is.na(rss_slim$age)) # 0, all good
+
+# Summarise
+summary(rss_slim$age) # median = 28, min = 0, max = 300
+
+# First we'll convert some values that are obvious mistakes to NA
+rss_slim[rss_slim$age < 14 | rss_slim$age > 100, 'age']  <- NA
+length(rss_slim[rss_slim$age < 14 | rss_slim$age > 100, 'age']) # 19
+# We should now have 19 NA
+sum(is.na(rss_slim$age)) # 19 as expected
+
+# Let's re-summarise
+summary(rss_slim$age)
+# And let's store the median
+q_median <- median(rss_slim$age, na.rm = TRUE)
+q_median # 28 years old
+
+# Although age has outliers, it seems reasonably distributed
+# We'll therefore do not replace outliers, but simply replace all NA
+# with the median
+rss_slim[is.na(rss_slim$age), 'age']  <- q_median
+
+# Let's re-summarise
+summary(rss_slim$age) # median still 28
+# We should now have 0 NA
+sum(is.na(rss_slim$age)) # 0 as expected
 
 
+# migration_duration (years)
+# Not computed
+
+# Warning, I wonder if some answers are not weeks instead of years!!!
+
+# To be converted to num first
+# Conversion might coerce to NA; check NA count before
+sum(is.na(rss_slim$migration_duration)) # 0
+# Print levels before
+rss_slim %>% group_by(migration_duration) %>% summarise(count = n()) %>% print(n=49)
+
+# Convert to number
+rss_slim$migration_duration  <- as.numeric(rss_slim$migration_duration)
+# Print levels after
+rss_slim %>% group_by(migration_duration) %>% summarise(count = n()) %>% print(n=49) # all good
+# Check NA count after
+sum(is.na(rss_slim$migration_duration)) # 0, all good
+
+# First, we'll replace these 7 values, which are mistakes and not outliers,
+# with NA
+sort(rss_slim[rss_slim$migration_duration > 100, "migration_duration"])
+rss_slim[rss_slim$migration_duration > 100, "migration_duration"]  <- NA
+
+# Summarise
+summary(rss_slim$migration_duration) # median = 2, min 0, max 86, NA 7, all as expected
+
+# Let's store the median
+q_median <- median(rss_slim$migration_duration, na.rm = TRUE)
+q_median # 2 years
+
+
+# Spot outliers using percentile method, with conservative threshold of 0.01/0.99
+lower_bound <- quantile(rss_slim$migration_duration, 0.01, na.rm = TRUE)
+upper_bound <- quantile(rss_slim$migration_duration, 0.99, na.rm = TRUE)
+outlier_ind <- which(rss_slim$migration_duration < lower_bound | rss_slim$migration_duration > upper_bound)
+length(rss_slim[outlier_ind, "migration_duration"]) # 12 outliers,
+sort(rss_slim[outlier_ind, "migration_duration"]) # with smallest being 60 years
+
+# Replace 18 extreme outliers with median
+rss_slim[outlier_ind, "migration_duration"] <- q_median
+
+# Re-summarise
+summary(rss_slim$migration_duration) # median still 2, max 48 years as expected
+
+# We should still have the same number of NA
+sum(is.na(rss_slim$migration_duration)) # 7 --> as expected
+
+# And we will also replace them with the median
+rss_slim[is.na(rss_slim$migration_duration), "migration_duration"] <- q_median
+
+
+# Re-summarise
+summary(rss_slim$migration_duration) # median still 2, max still 48
+# No NA should remain
+sum(is.na(rss_slim$migration_duration)) # 0, all good
+
+
+#######################################################
+
+
+# TrainingDuration (days)
+# Computed from Mimosa:
+# TrainingEndDate - TrainingStartDate
+
+
+# Summarise
+summary(rss_slim$TrainingDuration) # median = 4, min 0, max 167, NA 770
+
+# NA
+sum(is.na(rss_slim$TrainingDuration)) # 770
+
+
+# We have 770 NA. Logically, all these NA should be people who did not receive
+# training or that we recoded as Unknown above. Let's check
+rss_slim %>% group_by(Training) %>% summarise(count = n())
+# No         581
+# Unknown    189
+# Yes        615
+
+# That is the case, however, we cannot be sure that the Unknown received no training!
+# But we decide to recode all these 770 cases as 0 days of training, which will need
+# to be reported (i.e., 189 Unknown were recoded to 0 days).
+
+# Another thing we need to check is that no people who receive training are NA or have
+# 0 days of training. Let's check:
+dim(rss_slim[rss_slim$Training == 'Yes' & rss_slim$TrainingDuration == 0 & !is.na(rss_slim$TrainingDuration), c('Training', 'TrainingDuration')]) # 115
+
+# Unfortunatly, we have 115 respondents who stated they received training, but have 0
+# days of training.
+
+# So what we'll do is this. We will add one day to all respondents, and code the NA as
+# 0, like this, we'll still be able to differentiate between No training and training.
+# This too will need to be reported.
+rss_slim$TrainingDuration <- rss_slim$TrainingDuration + 1
+
+# Re-summarise
+summary(rss_slim$TrainingDuration) # median = 4, min now 1, max now 168, NA still 770,
+# all as expected
+
+# We will now check for outliers. We will replace NA with 0 after this, because doing it
+# now would change the median to 0, which would be incorrect for those outliers who did
+# received training.
+# Also, we will use the median before adding the ones, since this seems more adequate.
+
+
+# Let's store the median
+q_median <- 4 # exception, from above
+
+
+
+# Spot outliers using percentile method, with conservative threshold of 0.01/0.99
+lower_bound <- quantile(rss_slim$TrainingDuration, 0.01, na.rm = TRUE)
+upper_bound <- quantile(rss_slim$TrainingDuration, 0.99, na.rm = TRUE)
+outlier_ind <- which(rss_slim$TrainingDuration < lower_bound | rss_slim$TrainingDuration > upper_bound)
+length(rss_slim[outlier_ind, "TrainingDuration"]) # 7 outliers,
+sort(rss_slim[outlier_ind, "TrainingDuration"]) # with smallest being 83 days
+
+# Replace 7 extreme outliers with first median
+rss_slim[outlier_ind, "TrainingDuration"] <- q_median
+
+# Re-summarise
+summary(rss_slim$TrainingDuration) # median = 5, min still 1, max 74 as expected, NA still 770,
+# all as expected
+# Note median is now 5 (not 4), because of the added ones. That said, we replaced the values of
+# outliers with the original median, 4
+
+# Let us now finally code all the NA as 0 days:
+
+rss_slim <- rss_slim %>% mutate(TrainingDuration = replace_na(TrainingDuration, 0))
+
+# Re-check NA
+sum(is.na(rss_slim$TrainingDuration)) # 0 as expected
+# Re-summarise
+summary(rss_slim$TrainingDuration) # median is now 0 (as expected), min is 0 (as expected),
+# and max is still 74
+
+# Let's plot our final distribution
+
+boxplot(rss_slim$TrainingDuration,
+        ylab = "Days",
+        main = "TrainingDuration"
+)
+# Skewed to 0, but better than losing all these observations, I guess, and difficult to
+# do better given inconsistency in the data mentioned above.
+
+
+#######################################################
+
+
+# MBSupportDuration (days)
+# Computed from Mimosa:
+# MicrobusinessEndDate - ArrivalDate
+
+# Summarise
+summary(rss_slim$MBSupportDuration) # median = 121.5, min -191 (!), max 1658, NA 203
+
+# NA
+sum(is.na(rss_slim$MBSupportDuration)) # 203
+
+# First, investigate negative numbers
+rss_slim[rss_slim$MBSupportDuration <= 0 & !is.na(rss_slim$MBSupportDuration), "MBSupportDuration"]
+
+# There is only one, which we will convert to NA
+rss_slim[rss_slim$MBSupportDuration <= 0 & !is.na(rss_slim$MBSupportDuration), "MBSupportDuration"]  <- NA
+
+# Re-summarise
+summary(rss_slim$MBSupportDuration) # median now 122, min now 2, max still 1658, NA now 204, all
+# as expected
+
+# As for TrainingDuration, we will replace the NA with 0. That said, we do not have the same
+# issue concerning respondents who received training with 0 days.
+# Again, we'll do the change after spotting outliers.
+
+# Let's store the median
+q_median <- 121.5 # exception, from above
+
+
+
+# Spot outliers using percentile method, with conservative threshold of 0.01/0.99
+lower_bound <- quantile(rss_slim$MBSupportDuration, 0.01, na.rm = TRUE)
+upper_bound <- quantile(rss_slim$MBSupportDuration, 0.99, na.rm = TRUE)
+outlier_ind <- which(rss_slim$MBSupportDuration < lower_bound | rss_slim$MBSupportDuration > upper_bound)
+length(rss_slim[outlier_ind, "MBSupportDuration"]) # 12 outliers,
+sort(rss_slim[outlier_ind, "MBSupportDuration"]) # with smallest being 384 days
+
+# Replace 7 extreme outliers with first median
+rss_slim[outlier_ind, "MBSupportDuration"] <- q_median
+
+# Re-summarise
+summary(rss_slim$MBSupportDuration) # median still 121.5, min still 2, max now 383, NA still 204,
+# all as expected
+
+
+# Let us now finally code all the NA as 0 days:
+
+rss_slim <- rss_slim %>% mutate(MBSupportDuration = replace_na(MBSupportDuration, 0))
+
+# Re-check NA
+sum(is.na(rss_slim$MBSupportDuration)) # 0 as expected
+# Re-summarise
+summary(rss_slim$MBSupportDuration) # median is now 96, min is now 0,
+# and max is still 383
+
+# Let's plot our final distribution
+
+boxplot(rss_slim$MBSupportDuration,
+        ylab = "Days",
+        main = "MBSupportDuration"
+)
+# Looking quite good.
+
+# I am here
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# MBAssistanceDuration (days)
+# Computed from Mimosa and Kobo
+# interview_date [Kobo] - MicrobusinessEndDate [Mimosa]
 
 
 
