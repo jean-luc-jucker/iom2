@@ -1,8 +1,9 @@
-# Main change from v4: small code cleaning, adding third version of data set
+# Main change from v3: we start data preparation for regression
 
 getwd()
 library(readxl)
 library(tidyverse)
+
 
 # LOAD DATA ####
 
@@ -69,6 +70,8 @@ mimosa_slim <- mimosa %>% select(
          "CaseNo/IndividualNo")
 # Final properties
 dim(mimosa_slim) # 2,580 x 28
+#mimosa_slim
+#view(mimosa_slim)
 
 
 # 2. KOBO ####
@@ -84,6 +87,8 @@ sum(duplicated(kobo)) # now 0
 # Print names
 names(kobo)
 # Print types
+str(kobo)
+
 str(kobo)
 
 # Subset ######################################################################
@@ -696,15 +701,31 @@ rss  <- rss %>% mutate(MBAssistanceDuration =
 # Final dimensions
 dim(rss) # 1,385 x 215 --> as expected
 
+
+
+# NA
+colSums(is.na(rss))
+
+# Data types
+str(rss)
+
+# Character to Numeric
+# If needed, outstanding
+
+
 # EXPORT FULL DATA ####
 #write_excel_csv(rss, 'data_clean/rss.csv')
 # RDS version
 #saveRDS(rss, file = 'data_clean/rss.rds')
 
 
-# SUBSET A SLIM VERSION ####
+str(rss)
 
-# Useful to have a slim version before doing any cleaning and recoding
+
+###############################################################################
+
+
+# SUBSET A SLIM VERSION ####
 
 rss_slim <- rss %>% 
   
@@ -756,31 +777,27 @@ rss_slim <- rss %>%
          MicrobusinessFormOfAssistance
   )
 
-dim(rss_slim) # 1,385 x 34
-
-# EXPORT FULL DATA ####
-#write_excel_csv(rss_slim, 'data_clean/rss_slim.csv')
-# RDS version
-#saveRDS(rss_slim, file = 'data_clean/rss_slim.rds')
 
 
+
+# NA
+#colSums(is.na(rss_slim))
 
 # Recode Independent variables
 
+# Principles:
+# Answers who represent less than 15% of all answers are grouped together
+# Exceptions:
+# sex (female=14%), since this is a crucial variable
+# origin_country, kept all above 10%
+
 colSums(is.na(rss_slim))
 
-# Main assessment
 
-# Before (print any variable needed)
-#rss_slim %>% group_by(Microbusiness) %>% summarise(count = n()) %>% 
-#  mutate(percent = count/sum(count)*100) %>% arrange(-percent) %>% print(n=21)
+# Before
+rss_slim %>% group_by(Microbusiness) %>% summarise(count = n()) %>% 
+  mutate(percent = count/sum(count)*100) %>% arrange(-percent) %>% print(n=21)
 
-# Decision taken are as below. Main principles:
-# (1) Variables with only 2 levels and one of them being small (less than 100)
-# are dropped
-# (2) Variables that have many levels and can be recoded are recoded
-# (3) Variables with 2 levels and smallest level being of acceptable size
-# are kept, but NA are recoded to unknown, to avoid losing 189 obs in most cases
 
 # Variable-------------------------Levels ---Smallest -----NA -----Decision
 # sex: -------------------------------- 2 ------  195 ----- 0 ---> keep as is
@@ -811,10 +828,14 @@ colSums(is.na(rss_slim))
 # Note, levels do NOT include NA level
 # *several categories, but cannot be combined
 
-# Let's implement the above
 
-# Size before
-dim(rss_slim) # 1385 x 24
+
+dim(rss_slim) # 1385 x 34
+
+# If NA are dropped, 1385 - 189 = 1196
+
+
+
 
 rss_slim <- rss_slim %>% mutate(
   
@@ -852,12 +873,19 @@ rss_slim <- rss_slim %>% mutate(
          
   )
 
-# After (print any)
-#rss_slim %>% group_by(FinancialServices) %>% summarise(count = n()) %>% 
-#  mutate(percent = count/sum(count)*100) %>% arrange(-percent)
+# After
+rss_slim %>% group_by(FinancialServices) %>% summarise(count = n()) %>% 
+  mutate(percent = count/sum(count)*100) %>% arrange(-percent)
+
 
 dim(rss_slim) # 1,385 x 20 (14 columns less, as expected)
 
+
+# NA
+colSums(is.na(rss_slim))
+
+
+str(rss_slim)
 
 # Outliers; fill NA in numeric variables
 
@@ -961,6 +989,8 @@ summary(rss_slim$migration_duration) # median still 2, max still 48
 sum(is.na(rss_slim$migration_duration)) # 0, all good
 
 
+#######################################################
+
 
 # TrainingDuration (days)
 # Computed from Mimosa:
@@ -1048,6 +1078,7 @@ boxplot(rss_slim$TrainingDuration,
 # do better given inconsistency in the data mentioned above.
 
 
+#######################################################
 
 
 # MBSupportDuration (days)
@@ -1113,6 +1144,7 @@ boxplot(rss_slim$MBSupportDuration,
 # Looking quite good.
 
 
+#######################################################
 
 
 # MBAssistanceDuration (days)
@@ -1207,21 +1239,14 @@ boxplot(rss_slim$MBAssistanceDuration,
 )
 # Looking very good.
 
-# Data types check
-str(rss_slim) # all good
+
+str(rss_slim)
 
 
-# Final NA check
-colSums(is.na(rss_slim)) # all good
-
-
-# Export slim recoded data
-#write_excel_csv(rss_slim, 'data_clean/rss_slim_recoded.csv')
+# Export slim data
+#write_excel_csv(rss_slim, 'data_clean/rss_slim.csv')
 # RDS version
-#saveRDS(rss_slim, file = 'data_clean/rss_slim_recoded.rds')
-
-# Final size
-dim(rss_slim)
+#saveRDS(rss_slim, file = 'data_clean/rss_slim.rds')
 
 
 ###############################################################################
