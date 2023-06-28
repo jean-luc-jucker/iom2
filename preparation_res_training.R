@@ -534,17 +534,38 @@ res %>% group_by(TrainingType) %>% summarise(count = n()) %>%
   mutate(percent = count/sum(count)*100) %>% arrange(-percent)
 #
 
-# We are here. Next: Outliers for all num vars
+dim(res)
 
 
+# Before we clean numeric variables, let's do a NA assessment and remove
+# some variables as discussed above
 
-# Still to drop these NA
+# Current dim
+dim(res) # 1892 x 30, as above
+
+# Reassess NA
+colSums(is.na(res))
+
+# For the following variables, we will drop rows with NA:
 # Gender (1)
-# Disable, drop entire variable since it has only 89
 # BusinessType (18)
 # ReceivedIOMBusinessAdvice (11)
 # FirstChoice (12)
-# MicroBusinessLevel (from Mimosa), drop entire variable due to following counts
+# Total: 42
+
+# That's because these cannot be meaningfully recoded or solved as we have done
+# in the previous step. Let's do it.
+
+res <- res %>% drop_na(Gender, BusinessType, ReceivedIOMBusinessAdvice, FirstChoice)
+
+# New dim
+dim(res) # 1,852 x 30, meaning we lost 40 observations (in other words, 2 were missing
+# for several variables)
+
+# Let's also discard 2 variables entirely, since they are very low count and cannot
+# be recoded. These variables are:
+# Disabled, who has only 89
+# MicroBusinessLevel (from Mimosa), due to following counts
 #MicroBusinessLevel count percent
 #Individual          1541   81.4 
 #NA                   199   10.5 
@@ -552,11 +573,66 @@ res %>% group_by(TrainingType) %>% summarise(count = n()) %>%
 #Community             54    2.85
 #NULL                  27    1.43
 
+res <- res %>% select(-c(Disabled, MicroBusinessLevel))
+
+# New dim
+dim(res) # 1,852 x 28, as expected
+
+# New NA assessment
+colSums(is.na(res)) # 0 in all expected (i.e. categorical) variables
+
+# We are finally ready to clean numeric variables. Let's do it.
 
 
+# Our numeric variables are:
+str(res)
+
+# (1) MigrationDuration,      a char to be converted to num,  with  97 NA
+# (2) TrainingDuration,       a char to be converted to num,  with 194 NA
+# (3) ReturnToReintegration,  already a num,                  with 206 NA
+# (4) AssistanceDuration,     already a num,                  with 206 NA
+
+# Also remember what these variables are:
+
+# (1) MigrationDuration     Kobo,   "Durée de l’absence du pays d’origine   Mettre 0 si moins d'un an"
+#     --> available as such in raw data
+#     --> in years
+
+# (2) TrainingDuration      Mimosa, "Duree formation"
+#     --> available as such in raw data
+#     --> in days
+
+# (3) ReturnToReintegration Mimosa, "ArrivalDate_Mimosa"                    renamed DateOfReturn 
+#                       AND Mimosa, "Date de reception de la reintegration" renamed ReintegrationDate
+#     --> computed as ReintegrationDate - DateOfReturn
+#     --> in days
+
+# (4) AssistanceDuration    Mimosa, "Date de réception de la réintégration" renamed ReintegrationDate
+#                       AND Kobo,   "Date de l'enquête"                     renamed InterviewDate
+#     --> computed as InterviewDate - ReintegrationDate
+#     --> in days
 
 
+# We'll try to use a similar code as in preparation_rss.R. That's because it is also
+# based on a merge (i.e, it has Mimosa data), contrary to preparation.res.R, which only
+# has kobo data.
 
+# This table will come handy to be sure we deal with the same variables
+
+# Name in RES ################################## Name in RSS ### Checked it is same variable?
+# MigrationDuration-----------------------migration_duration-----YES
+# TrainingDuration--------------------------TrainingDuration-----YES, but in RSS, was computed using
+                                                                 # TrainingEndDate & TrainingStartDate
+# ReturnToReintegration-------------------No equivalent in RSS---Not applicable
+# AssistanceDuration----------------------No equivalent in RSS---But... is similar to
+                                                                 # MBAssistanceDuration, which is 
+                                                                 # similar to interview_date [Kobo]
+                                                                 # - MicrobusinessEndDate [Mimosa]
+
+
+# MigrationDuration
+
+str(res)
 
 
 
