@@ -419,8 +419,8 @@ dim(res) # 1892 x 30, as expected
 names(res)
 
 # Before
-res %>% group_by(TrainingType) %>% summarise(count = n()) %>% 
-  mutate(percent = count/sum(count)*100) %>% arrange(-percent) %>% print(n=21)
+res %>% group_by(TrainingDuration) %>% summarise(count = n()) %>% 
+  mutate(percent = count/sum(count)*100) %>% arrange(-percent) %>% print(n=30)
 
 res <- res %>% mutate(
   
@@ -517,6 +517,12 @@ res <- res %>% mutate(
       TrainingType == "Non spécifié" ~ "Other",
       TrainingType == "Other" ~ "Other", # NA are filled below
       
+    ),
+  
+  TrainingDuration = 
+    case_when(
+      TrainingDuration == "NULL" ~ "0",
+      TRUE ~ as.character(TrainingDuration)
     )
   
 ) %>% 
@@ -530,7 +536,7 @@ res <- res %>% mutate(
   )
 
 # After
-res %>% group_by(TrainingType) %>% summarise(count = n()) %>% 
+res %>% group_by(TrainingDuration) %>% summarise(count = n()) %>% 
   mutate(percent = count/sum(count)*100) %>% arrange(-percent)
 #
 
@@ -632,7 +638,105 @@ str(res)
 
 # MigrationDuration
 
-str(res)
+# To be converted to num first
+# Conversion might coerce to NA; check NA count before
+sum(is.na(res$MigrationDuration)) # 97
+# Print levels before
+res %>% group_by(MigrationDuration) %>% summarise(count = n()) %>% print(n=49)
+# Convert to number
+res$MigrationDuration  <- as.numeric(res$MigrationDuration)
+# Print levels after
+res %>% group_by(MigrationDuration) %>% summarise(count = n()) %>% print(n=49) # all good
+# Check NA count after
+sum(is.na(res$MigrationDuration)) # still 97, all good
+# First, we'll replace these 3 values, which are mistakes and not outliers,
+# with NA
+res[res$MigrationDuration > 100 & !is.na(res$MigrationDuration), "MigrationDuration"]
+res[res$MigrationDuration > 100 & !is.na(res$MigrationDuration), "MigrationDuration"]  <- NA
+# New NA count
+sum(is.na(res$MigrationDuration)) # 100, as expected
+# Summarise
+summary(res$MigrationDuration) # median = 2, min 0, max 36, NA 100, all as expected
+# Let's store the median
+q_median <- median(res$MigrationDuration, na.rm = TRUE)
+q_median # 2 years
+# Boxplot before
+boxplot(res$MigrationDuration,
+        ylab = "Years",
+        main = "MigrationDuration"
+)
+# Spot outliers using percentile method, with conservative threshold of 0.01/0.99
+lower_bound <- quantile(res$MigrationDuration, 0.01, na.rm = TRUE)
+upper_bound <- quantile(res$MigrationDuration, 0.99, na.rm = TRUE)
+outlier_ind <- which(res$MigrationDuration < lower_bound | res$MigrationDuration > upper_bound)
+dim(res[outlier_ind, "MigrationDuration"]) # 16 outliers,
+res[outlier_ind, "MigrationDuration"] # with smallest being 16 years
+# Replace 16 extreme outliers with median
+res[outlier_ind, "MigrationDuration"] <- q_median
+# Boxplot after
+boxplot(res$MigrationDuration,
+        ylab = "Years",
+        main = "MigrationDuration"
+)
+# Re-summarise
+summary(res$MigrationDuration) # median still 2, max 14 years as expected
+# We should still have the same number of NA
+sum(is.na(res$MigrationDuration)) # 100 --> as expected
+# And we will also replace them with the median
+res[is.na(res$MigrationDuration), "MigrationDuration"] <- q_median
+# Re-summarise
+summary(res$MigrationDuration) # median still 2, max still 14
+# No NA should remain
+sum(is.na(res$MigrationDuration)) # 0, all good
+
+
+
+# TrainingDuration
+
+# To be converted to num first
+# Conversion might coerce to NA; check NA count before
+sum(is.na(res$TrainingDuration)) # 194
+# Print levels before
+res %>% group_by(TrainingDuration) %>% summarise(count = n()) %>% print(n=49)
+# Convert to number
+res$TrainingDuration  <- as.numeric(res$TrainingDuration)
+# Print levels after
+res %>% group_by(TrainingDuration) %>% summarise(count = n()) %>% print(n=49) # all good
+# Check NA count after
+sum(is.na(res$TrainingDuration)) # still 194, all good
+# Summarise
+summary(res$TrainingDuration) # median = 0, min 0, max 756, NA 194, all as expected
+# Let's store the median
+q_median <- median(res$TrainingDuration, na.rm = TRUE)
+q_median # 0
+# Boxplot before
+boxplot(res$TrainingDuration,
+        ylab = "Days",
+        main = "TrainingDuration"
+)
+# Spot outliers using percentile method, with conservative threshold of 0.01/0.99
+lower_bound <- quantile(res$TrainingDuration, 0.01, na.rm = TRUE)
+upper_bound <- quantile(res$TrainingDuration, 0.99, na.rm = TRUE)
+outlier_ind <- which(res$TrainingDuration < lower_bound | res$TrainingDuration > upper_bound)
+dim(res[outlier_ind, "TrainingDuration"]) # 11 outliers,
+res[outlier_ind, "TrainingDuration"] # with smallest being 35 days
+# Replace 11 extreme outliers with median
+res[outlier_ind, "TrainingDuration"] <- q_median
+# Boxplot after
+boxplot(res$TrainingDuration,
+        ylab = "Days",
+        main = "TrainingDuration"
+)
+# Re-summarise
+summary(res$TrainingDuration) # median still 0, max 34 years as expected
+# We should still have the same number of NA
+sum(is.na(res$TrainingDuration)) # 194 --> as expected
+# And we will also replace them with the median
+res[is.na(res$TrainingDuration), "TrainingDuration"] <- q_median
+# Re-summarise
+summary(res$TrainingDuration) # median still 0, max still 34
+# No NA should remain
+sum(is.na(res$TrainingDuration)) # 0, all good
 
 
 
