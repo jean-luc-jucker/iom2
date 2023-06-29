@@ -20,8 +20,6 @@ kobo <- read_excel('data_raw/RE_Economic_Survey_clean for data analysis.xlsx', #
 dim(kobo) # 2,073 x 154
 
 
-
-
 # 1. MIMOSA ####
 
 # Check perfect duplicates
@@ -37,9 +35,6 @@ str(mimosa)
 # Check current formats
 mimosa[mimosa$`Date de reception de la reintegration` != 'NULL', "Date de reception de la reintegration"]
 # Seem to be integers, which might have been coerced by R. Let's convert them.
-
-
-
 
 # First, we need to convert them to numeric
 
@@ -65,11 +60,6 @@ sum(is.na(mimosa$`Date de reception de la reintegration`)) # 103,277 as before
 mimosa[!is.na(mimosa$`Date de reception de la reintegration`), "Date de reception de la reintegration"] # first, note length is 119,102, as expected
 
 # Look good, but we'll need to compare raw and processed later
-
-
-
-# I am here
-
 
 
 # Durations
@@ -130,6 +120,7 @@ mimosa_slim <- mimosa %>% select(
   mutate(ReturnToReintegration = 
            as.numeric(difftime(ReintegrationDate, DateOfReturn, units = "days"))
   )
+
 
 
 # 2. KOBO ####
@@ -232,6 +223,26 @@ kobo_slim <- kobo %>% select(
 
 
 
+# Before the merge, interview_data from Kobo needs to be converted to proper date
+# Type before
+typeof(kobo_slim$InterviewDate) # char
+# NA before
+sum(is.na(kobo_slim$InterviewDate)) # 1
+# Print a few dates
+kobo_slim$InterviewDate # seems to be in y-m-d format
+# Let's try to convert
+library(lubridate)
+kobo_slim$InterviewDate <-  ymd(kobo_slim$InterviewDate)
+# Type after
+typeof(kobo_slim$InterviewDate) # double
+# NA after
+sum(is.na(kobo_slim$InterviewDate)) # still 1, all good
+# Also check using str
+str(kobo_slim) # Now a date
+
+
+# Merge ####
+
 mimosa_slim # 222,379 x 10
 kobo_slim # 2,073 x 23
 
@@ -259,16 +270,15 @@ sum(duplicated(result$ID_1)) # 275 (i.e., 275 - 138 blanks = our 137 rows (+1) f
 to_resolve  <- result[duplicated(result$ID_1) | duplicated(result$ID_1, fromLast = TRUE), ]
 to_resolve # 351 x 31
 
+# Save file with errors and inconsistencies
+write_csv(to_resolve, 'data_clean/res_training_to_resolve.csv')
 
-
-
-#write_csv(to_resolve, 'data_clean/to_resolve_v3.csv')
-
-##################################################
-
-
+# Count number of cases these errors represent
 countingit  <- to_resolve %>% filter(!is.na(ID_1)) %>%  group_by(ID_1) %>% summarise(count=n())
 countingit # The 138 supplementary rows are 75 cases
+
+# Save cases
+write_csv(countingit, 'data_clean/res_training_to_resolve_cases.csv')
 
 sum(countingit$count) # they represent 213 rows
 
@@ -284,6 +294,9 @@ list(countingit$ID_1)
 #[67] ""  ""  ""  ""  ""  "" 
 #[73] ""  ""  "" 
 dim(result) # 2211
+
+# Remove unresolvable cases, after discussion with client
+
 res <- result %>% filter(ID_1 != "CH5017X029301" & ID_1 != "CH5017X029302" & ID_1 != "CH5018X008561" &
                     ID_1 != "DZ1021003884" & ID_1 != "DZ1021004350" & ID_1 != "EG1020001001" &
                     ID_1 != "LY1017002826" & ID_1 != "LY1018003615" & ID_1 != "LY1019002074" &
@@ -323,6 +336,15 @@ res[res$Gender == 'Masculin' & res$Gender_Mimosa == 'Female' & !is.na(res$Gender
 
 # And respondents who are women in Kobo are men in Mimosa:
 res[res$Gender == 'Féminin' & res$Gender_Mimosa == 'Male' & !is.na(res$Gender) & !is.na(res$Gender_Mimosa), ] # 16
+
+
+# Save these cases
+gender_issue <- res[((res$Gender == 'Masculin' & res$Gender_Mimosa == 'Female' & !is.na(res$Gender) & !is.na(res$Gender_Mimosa)) | (res$Gender == 'Féminin' & res$Gender_Mimosa == 'Male' & !is.na(res$Gender) & !is.na(res$Gender_Mimosa))), ]
+
+write_excel_csv(gender_issue, 'data_clean/res_training_to_resolve_gender.csv')
+
+
+
 
 # After discussion with client, who cannot explain this, we decide to remove these
 # 30 cases
@@ -632,7 +654,7 @@ str(res)
 # ReturnToReintegration-------------------No equivalent in RSS---Not applicable
 # AssistanceDuration----------------------No equivalent in RSS---But... is similar to
                                                                  # MBAssistanceDuration, which is 
-                                                                 # similar to interview_date [Kobo]
+                                                                 # interview_date [Kobo]
                                                                  # - MicrobusinessEndDate [Mimosa]
 
 
@@ -739,15 +761,125 @@ summary(res$TrainingDuration) # median still 0, max still 34
 sum(is.na(res$TrainingDuration)) # 0, all good
 
 
+# ReturnToReintegration
+
+# Print NA
+sum(is.na(res$ReturnToReintegration)) # 206
+# Summarise
+summary(res$ReturnToReintegration) # median = 212, min -132!, max 2025
+# We have some negative values, which is weird. Let's take a look
+res[res$ReturnToReintegration <= 0 & !is.na(res$ReturnToReintegration), "ReturnToReintegration"] # 7
+# We will replace these values with the median. For this, we need to 
+# compute the median without taking the negative values into consideration:
+summary(res[!res$ReturnToReintegration <= 0 & !is.na(res$ReturnToReintegration), "ReturnToReintegration"]) # 1,639, which is 1852 - 7 negative values - 206 NA indeed
+# Store median
+q_median <- 214
+# Replace negative values with the updated median (note, we keep 1 zero value)
+res[res$ReturnToReintegration < 0 & !is.na(res$ReturnToReintegration), "ReturnToReintegration"] <- q_median
+# Resummarise
+summary(res$ReturnToReintegration) # median = now 214, min now 0, max still 2025, all as expected
+# Boxplot before
+boxplot(res$ReturnToReintegration,
+        ylab = "Days",
+        main = "ReturnToReintegration"
+)
+# Spot outliers using percentile method, with conservative threshold of 0.01/0.99
+lower_bound <- quantile(res$ReturnToReintegration, 0.01, na.rm = TRUE)
+upper_bound <- quantile(res$ReturnToReintegration, 0.99, na.rm = TRUE)
+outlier_ind <- which(res$ReturnToReintegration < lower_bound | res$ReturnToReintegration > upper_bound)
+dim(res[outlier_ind, "ReturnToReintegration"]) # 32 outliers,
+res[outlier_ind, "ReturnToReintegration"] %>% print(n=32) # with smallest being 0 days or 1552 days
+# We do not want to replace lower_bound outliers, though, so we take only upper bound
+lower_bound <- quantile(res$ReturnToReintegration, 0.01, na.rm = TRUE)
+upper_bound <- quantile(res$ReturnToReintegration, 0.99, na.rm = TRUE)
+outlier_ind <- which(res$ReturnToReintegration > upper_bound) # only upper bound
+dim(res[outlier_ind, "ReturnToReintegration"]) # 17 outliers,
+res[outlier_ind, "ReturnToReintegration"] %>% print(n=32) # with smallest being 1552 days
+# Replace 17 extreme outliers with median
+res[outlier_ind, "ReturnToReintegration"] <- q_median
+# Boxplot after
+boxplot(res$ReturnToReintegration,
+        ylab = "Days",
+        main = "ReturnToReintegration"
+)
+# Re-summarise
+summary(res$ReturnToReintegration) # median still 214, max 1543 years as expected
+# We should still have the same number of NA
+sum(is.na(res$ReturnToReintegration)) # 206 --> as expected
+# And we will also replace them with the median
+res[is.na(res$ReturnToReintegration), "ReturnToReintegration"] <- q_median
+# Re-summarise
+summary(res$ReturnToReintegration) # median still 214, max still 1543
+# No NA should remain
+sum(is.na(res$ReturnToReintegration)) # 0, all good
 
 
 
 
+# AssistanceDuration
+
+
+# Print NA
+sum(is.na(res$AssistanceDuration)) # 206
+# Summarise
+summary(res$AssistanceDuration) # median = 92, min -574!, max 1468
+# We have some negative values, which is weird. Let's take a look
+res[res$AssistanceDuration <= 0 & !is.na(res$AssistanceDuration), "AssistanceDuration"] # 237
+# We will replace these values with the median. For this, we need to 
+# compute the median without taking the negative values into consideration:
+summary(res[!res$AssistanceDuration <= 0 & !is.na(res$AssistanceDuration), "AssistanceDuration"]) # 1,409, which is 1852 - 237 negative values - 206 NA indeed
+# Store median
+q_median <- 112
+# Replace negative values with the updated median (note, we keep the zero values)
+res[res$AssistanceDuration < 0 & !is.na(res$AssistanceDuration), "AssistanceDuration"] <- q_median
+# Resummarise
+summary(res$AssistanceDuration) # median = now 112, min now 0, max still 1468, all as expected
+# Boxplot before
+boxplot(res$AssistanceDuration,
+        ylab = "Days",
+        main = "AssistanceDuration"
+)
+# Spot outliers using percentile method, with conservative threshold of 0.01/0.99
+lower_bound <- quantile(res$AssistanceDuration, 0.01, na.rm = TRUE)
+upper_bound <- quantile(res$AssistanceDuration, 0.99, na.rm = TRUE)
+outlier_ind <- which(res$AssistanceDuration < lower_bound | res$AssistanceDuration > upper_bound)
+dim(res[outlier_ind, "AssistanceDuration"]) # 34 outliers,
+res[outlier_ind, "AssistanceDuration"] %>% print(n=34) # with smallest being 0 days or 1130 days
+# We do not want to replace lower_bound outliers, though, so we take only upper bound
+lower_bound <- quantile(res$AssistanceDuration, 0.01, na.rm = TRUE)
+upper_bound <- quantile(res$AssistanceDuration, 0.99, na.rm = TRUE)
+outlier_ind <- which(res$AssistanceDuration > upper_bound) # only upper bound
+dim(res[outlier_ind, "AssistanceDuration"]) # 17 outliers,
+res[outlier_ind, "AssistanceDuration"] %>% print(n=32) # with smallest being 1130 days
+# Replace 17 extreme outliers with median
+res[outlier_ind, "AssistanceDuration"] <- q_median
+# Boxplot after
+boxplot(res$AssistanceDuration,
+        ylab = "Days",
+        main = "AssistanceDuration"
+)
+# Re-summarise
+summary(res$AssistanceDuration) # median still 112, max 1122 days as expected
+# We should still have the same number of NA
+sum(is.na(res$AssistanceDuration)) # 206 --> as expected
+# And we will also replace them with the median
+res[is.na(res$AssistanceDuration), "AssistanceDuration"] <- q_median
+# Re-summarise
+summary(res$AssistanceDuration) # median still 112, max still 1122
+# No NA should remain
+sum(is.na(res$AssistanceDuration)) # 0, all good
 
 
 
+# Export slim version
 
+# Final dim
+dim(res) # 1,852 x 28
 
+# Export
+write_excel_csv(res, 'data_clean/res_training_slim.csv')
+# RDS version
+saveRDS(res, file = 'data_clean/res_training_slim.rds')
 
 
 
