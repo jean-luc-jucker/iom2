@@ -1,4 +1,4 @@
-# Main change from v4: adding 1 variable, CounsellingEndDate
+# Main change from v4: small code cleaning, adding third version of data set
 
 getwd()
 library(readxl)
@@ -56,22 +56,20 @@ mimosa_slim <- mimosa %>% select(
   "Microbusinesslevel",
   "MicrobusinessDeliveredBy",
   "MicrobusinessFormOfAssistance",
-  "MicrobusinessEndDate",
-  "CounsellingEndDate"
+  "MicrobusinessEndDate"
   ) %>% 
   # Computed variables
   mutate(TrainingDuration = 
            as.numeric(difftime(TrainingEndDate, TrainingStartDate, units = "days")),
          MBSupportDuration = 
-           as.numeric(difftime(MicrobusinessEndDate, ArrivalDate, units = "days")),
-         MBTimeToReceiveAssistance =
-           as.numeric(difftime(CounsellingEndDate, ArrivalDate, units = "days"))
+           as.numeric(difftime(MicrobusinessEndDate, ArrivalDate, units = "days"))
            ) %>% 
   # Rename ID for future merge
   rename("ID" = 
          "CaseNo/IndividualNo")
 # Final properties
-dim(mimosa_slim) # 2,580 x 30
+dim(mimosa_slim) # 2,580 x 28
+
 
 # 2. KOBO ####
 
@@ -667,11 +665,11 @@ str(kobo_slim) # Now a date
 # 3. MERGE ####
 
 # Objects dimensions
-dim(mimosa_slim) # 2,580 x  30
+dim(mimosa_slim) # 2,580 x  28
 dim(kobo_slim)   # 1,385 x 187
 
 # Target dimension
-# 1,385 x 216
+# 1,385 x 214
 
 # Check duplicates in Mimosa (not an issue, just for the record)
 sum(duplicated(mimosa$`CaseNo/IndividualNo`)) # 13
@@ -682,7 +680,7 @@ mimosa_slim[duplicated(mimosa_slim$ID), 'ID']
 rss <- merge(mimosa_slim, kobo_slim, by='ID', all.y = TRUE)
 
 # Dimensions
-dim(rss) # 1,385 x 216 --> as expected
+dim(rss) # 1,385 x 214 --> as expected
 
 # Check perfect duplicates
 sum(duplicated(rss)) # 0
@@ -696,7 +694,7 @@ rss  <- rss %>% mutate(MBAssistanceDuration =
                  as.numeric(difftime(interview_date, MicrobusinessEndDate, units = "days")))
 
 # Final dimensions
-dim(rss) # 1,385 x 217 --> as expected
+dim(rss) # 1,385 x 215 --> as expected
 
 # EXPORT FULL DATA ####
 #write_excel_csv(rss, 'data_clean/rss.csv')
@@ -725,7 +723,6 @@ rss_slim <- rss %>%
          TrainingDuration,
          MBSupportDuration,
          MBAssistanceDuration,
-         MBTimeToReceiveAssistance,
          
          # (b) Categorical
          sex,
@@ -759,9 +756,9 @@ rss_slim <- rss %>%
          MicrobusinessFormOfAssistance
   )
 
-dim(rss_slim) # 1,385 x 35
+dim(rss_slim) # 1,385 x 34
 
-# EXPORT SLIM DATA ####
+# EXPORT FULL DATA ####
 #write_excel_csv(rss_slim, 'data_clean/rss_slim.csv')
 # RDS version
 #saveRDS(rss_slim, file = 'data_clean/rss_slim.rds')
@@ -817,7 +814,7 @@ colSums(is.na(rss_slim))
 # Let's implement the above
 
 # Size before
-dim(rss_slim) # 1385 x 35
+dim(rss_slim) # 1385 x 24
 
 rss_slim <- rss_slim %>% mutate(
   
@@ -859,7 +856,7 @@ rss_slim <- rss_slim %>% mutate(
 #rss_slim %>% group_by(FinancialServices) %>% summarise(count = n()) %>% 
 #  mutate(percent = count/sum(count)*100) %>% arrange(-percent)
 
-dim(rss_slim) # 1,385 x 21 (14 columns less, as expected)
+dim(rss_slim) # 1,385 x 20 (14 columns less, as expected)
 
 
 # Outliers; fill NA in numeric variables
@@ -1009,8 +1006,10 @@ summary(rss_slim$TrainingDuration) # median = 4, min now 1, max now 168, NA stil
 # received training.
 # Also, we will use the median before adding the ones, since this seems more adequate.
 
+
 # Let's store the median
 q_median <- 4 # exception, from above
+
 
 
 # Spot outliers using percentile method, with conservative threshold of 0.01/0.99
@@ -1049,6 +1048,8 @@ boxplot(rss_slim$TrainingDuration,
 # do better given inconsistency in the data mentioned above.
 
 
+
+
 # MBSupportDuration (days)
 # Computed from Mimosa:
 # MicrobusinessEndDate - ArrivalDate
@@ -1085,7 +1086,7 @@ outlier_ind <- which(rss_slim$MBSupportDuration < lower_bound | rss_slim$MBSuppo
 length(rss_slim[outlier_ind, "MBSupportDuration"]) # 12 outliers,
 sort(rss_slim[outlier_ind, "MBSupportDuration"]) # with smallest being 384 days
 
-# Replace 12 extreme outliers with first median
+# Replace 7 extreme outliers with first median
 rss_slim[outlier_ind, "MBSupportDuration"] <- q_median
 
 # Re-summarise
@@ -1112,70 +1113,6 @@ boxplot(rss_slim$MBSupportDuration,
 # Looking quite good.
 
 
-
-
-
-
-
-# NEW MBTimeToReceiveAssistance (days)
-# Computed from Mimosa:
-# CounsellingEndDate - ArrivalDate
-
-# Summarise
-summary(rss_slim$MBTimeToReceiveAssistance) # median = 1, min -763 (!), max 1354, NA 395
-
-# NA
-sum(is.na(rss_slim$MBTimeToReceiveAssistance)) # 395
-
-# First, investigate negative numbers
-rss_slim[rss_slim$MBTimeToReceiveAssistance < 0 & !is.na(rss_slim$MBTimeToReceiveAssistance), "MBTimeToReceiveAssistance"]
-
-# There are 300+ of them (report to Julie), which we will convert to NA
-# Note, we keep the 0 as they are
-rss_slim[rss_slim$MBTimeToReceiveAssistance < 0 & !is.na(rss_slim$MBTimeToReceiveAssistance), "MBTimeToReceiveAssistance"]  <- NA
-
-# Re-summarise
-summary(rss_slim$MBTimeToReceiveAssistance) # median now 7, min now 0, max still 1364, NA now 690, all
-# as expected
-
-# Let us store the current median. We'll replace NA after spotting outliers
-
-# Let's store the median
-q_median <- 7 # exception
-
-
-# Spot outliers using percentile method, with conservative threshold of 0.01/0.99
-lower_bound <- quantile(rss_slim$MBTimeToReceiveAssistance, 0.01, na.rm = TRUE)
-upper_bound <- quantile(rss_slim$MBTimeToReceiveAssistance, 0.99, na.rm = TRUE)
-outlier_ind <- which(rss_slim$MBTimeToReceiveAssistance < lower_bound | rss_slim$MBTimeToReceiveAssistance > upper_bound)
-length(rss_slim[outlier_ind, "MBTimeToReceiveAssistance"]) # 7 outliers,
-sort(rss_slim[outlier_ind, "MBTimeToReceiveAssistance"]) # with smallest being 198 days
-
-# Replace 7 extreme outliers with first median
-rss_slim[outlier_ind, "MBTimeToReceiveAssistance"] <- q_median
-
-# Re-summarise
-summary(rss_slim$MBTimeToReceiveAssistance) # median still 7, min still 0, max now 195, NA still 690,
-# all as expected
-
-
-# Let us replace the NA with the median
-
-rss_slim <- rss_slim %>% mutate(MBTimeToReceiveAssistance = replace_na(MBTimeToReceiveAssistance, q_median))
-
-# Re-check NA
-sum(is.na(rss_slim$MBTimeToReceiveAssistance)) # 0 as expected
-# Re-summarise
-summary(rss_slim$MBTimeToReceiveAssistance) # median still 7, min still 0,
-# max still 195
-
-# Let's plot our final distribution
-
-boxplot(rss_slim$MBTimeToReceiveAssistance,
-        ylab = "Days",
-        main = "MBTimeToReceiveAssistance"
-)
-# Not looking much better, but it's hard to improve.
 
 
 # MBAssistanceDuration (days)
@@ -1229,6 +1166,8 @@ sum(is.na(rss_slim$MBAssistanceDuration)) # 201 indeed
 # Resummarize
 summary(rss_slim$MBAssistanceDuration) # median now 174.5, min now 1, max still 1951, all as expected
 
+
+
 # Spot outliers using percentile method, with conservative threshold of 0.01/0.99
 lower_bound <- quantile(rss_slim$MBAssistanceDuration, 0.01, na.rm = TRUE)
 upper_bound <- quantile(rss_slim$MBAssistanceDuration, 0.99, na.rm = TRUE)
@@ -1249,7 +1188,9 @@ rss_slim[outlier_ind, "MBAssistanceDuration"] <- q_median
 summary(rss_slim$MBAssistanceDuration) # median still 174.5, min still 1, max now 377, NA still 201,
 # all as expected
 
+
 # Let us now finally code all the NA as 0 days:
+
 rss_slim <- rss_slim %>% mutate(MBAssistanceDuration = replace_na(MBAssistanceDuration, 0))
 
 # Re-check NA
@@ -1259,6 +1200,7 @@ summary(rss_slim$MBAssistanceDuration) # median is now 158, min is now 0,
 # and max is still 377, all as expected
 
 # Let's plot our final distribution
+
 boxplot(rss_slim$MBAssistanceDuration,
         ylab = "Days",
         main = "MBAssistanceDuration"
@@ -1268,8 +1210,10 @@ boxplot(rss_slim$MBAssistanceDuration,
 # Data types check
 str(rss_slim) # all good
 
+
 # Final NA check
 colSums(is.na(rss_slim)) # all good
+
 
 # Export slim recoded data
 #write_excel_csv(rss_slim, 'data_clean/rss_slim_recoded.csv')
@@ -1277,7 +1221,7 @@ colSums(is.na(rss_slim)) # all good
 #saveRDS(rss_slim, file = 'data_clean/rss_slim_recoded.rds')
 
 # Final size
-dim(rss_slim) # 1,385 x 21
+dim(rss_slim)
 
 
 ###############################################################################
