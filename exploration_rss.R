@@ -4,13 +4,13 @@ library(ggplot2)
 library(GGally)
 
 # Load res object as df, and convert strings to factors
-df <- readRDS('data_clean/rss_slim_recoded.rds')%>% 
+df <- readRDS('data_clean/rss_slim.rds')%>% 
   mutate(across(where(is.character), as.factor))
 dim(df) # 1,385 x 21
 
 # Discard unplottable variables
 df <- df %>% select(-c(ID))
-#dim(df)
+dim(df)
 
 # Correlations
 # Subset to RSS vars
@@ -24,7 +24,47 @@ df <- df %>% select(-c(ID))
 #ggpair
 
 
-summary(df$age)
+#summary(df$CompositeScore)
+
+# RSS scores by country
+
+df <- df %>% rename(Country=origin_country) %>% 
+  select(Country, EconomicScore, CompositeScore) %>% 
+  group_by(Country) %>% 
+  summarise(Count = n(),
+            "Economic Score" = mean(EconomicScore),
+            "Composite Score" = mean(CompositeScore)
+            )
+
+df$Country <- fct_reorder(df$Country, df$`Composite Score`)
+
+
+plot <- df %>% pivot_longer(-c(Country, Count), names_to = 'Dimension', values_to = 'Score')
+plot
+
+ggplot(plot, aes(fill= fct_rev(Dimension), y=Score, x= Country, Score)) + 
+  geom_bar(position="dodge", stat = "identity")+
+  coord_flip()+
+  guides(fill = guide_legend(reverse = TRUE))+
+  scale_fill_manual(values = c('#3399FF', 'navyblue'))+
+  theme_minimal()+
+  theme(axis.title.y = element_blank(),
+        axis.title.x = element_blank(),
+        #axis.text.x = element_blank(),
+        axis.text.y = element_text(colour='black', size = 18),
+        axis.text.x = element_text(colour='black', size = 18),
+        #axis.title.x = element_text(colour='black', size = 16),
+        legend.position = 'right',
+        #legend.position = c(0.95, 1.05),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 18),
+        plot.margin = margin(r=25, l=1, b=0, t=1),
+        plot.title = element_text(size = 18),
+        plot.subtitle = element_text(size = 18))
+        #panel.grid = element_blank())
+
+
+
 
 # 1. Overall ##################################################################
 

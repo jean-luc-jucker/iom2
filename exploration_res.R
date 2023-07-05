@@ -12,6 +12,77 @@ dim(df) # 2,026 x 33
 df <- df %>% select(-c(MimosaID, InterviewDate))
 dim(df)
 
+df
+
+df %>% group_by(Country) %>% summarise(count = n())
+
+
+bs <- df %>%
+  select(Country, BusinessSuccess) %>% 
+  add_count(Country) %>% 
+  filter(BusinessSuccess =='High')  %>% 
+  group_by(Country, n) %>% 
+  summarise(Count = n()) %>% 
+  mutate(`High Business Success` = Count/n) %>% 
+  select(Country, `High Business Success`)
+bs
+
+
+bp <- df %>%
+  select(Country, BusinessProfitability) %>% 
+  add_count(Country) %>% 
+  filter(BusinessProfitability =='High')  %>% 
+  group_by(Country, n) %>% 
+  summarise(Count = n()) %>% 
+  mutate(`High Business Profitability` = Count/n) %>% 
+  select(Country, `High Business Profitability`)
+bp
+
+
+plot <- merge(bs, bp, by='Country')
+plot
+
+plot$Country <- fct_reorder(plot$Country, plot$`High Business Success`)
+
+plot
+
+
+plot <- plot %>% pivot_longer(-Country, names_to = 'Dimension', values_to = 'Score')
+plot
+
+
+
+
+ggplot(plot, aes(fill= Dimension, y=Score, x= Country, Score)) + 
+  geom_bar(position="dodge", stat = "identity")+
+  coord_flip()+
+  guides(fill = guide_legend(reverse = TRUE))+
+  scale_fill_manual(values = c('#3399FF', 'navyblue'))+
+  theme_minimal()+
+  scale_y_continuous(labels = scales::percent)+
+  theme(axis.title.y = element_blank(),
+        axis.title.x = element_blank(),
+        #axis.text.x = element_blank(),
+        axis.text.y = element_text(colour='black', size = 18),
+        axis.text.x = element_text(colour='black', size = 18),
+        #axis.title.x = element_text(colour='black', size = 16),
+        legend.position = 'right',
+        #legend.position = c(0.95, 1.05),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 18),
+        plot.margin = margin(r=25, l=1, b=0, t=1),
+        plot.title = element_text(size = 18),
+        plot.subtitle = element_text(size = 18))
+#panel.grid = element_blank())
+
+
+
+
+
+
+
+
+
 # 1. Overall ##################################################################
 
 # Set iteration counter to 0. This is needed only for numbering the output .png
