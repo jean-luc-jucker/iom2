@@ -286,13 +286,13 @@ make_plots_overall(df)
 #make_plots_overall(df[df$=='', ]) 
 
 
-# 2. By BusinessSuccess ##################################################################
+# 2. By another variable ##################################################################
 
 # Counter
 counter <- 0
 
 # Function
-make_plots_by_BusinessSuccess <- function(df){ # fun start
+make_plots_by_another_variable <- function(df){ # fun start
   
   # FOR-LOOP
   
@@ -307,7 +307,7 @@ make_plots_by_BusinessSuccess <- function(df){ # fun start
     # ratio
     n_levels <- dim(unique(df[col]))[1]
     # Number of grouping levels; needed for saving plot
-    n_grouping <- dim(unique(df['BusinessProfitability']))[1]
+    n_grouping <- dim(unique(df['WouldMigrateAgain']))[1]
     # Update counter; needed for plot numbering
     counter <- counter + 1
     
@@ -321,7 +321,7 @@ make_plots_by_BusinessSuccess <- function(df){ # fun start
       
       p <- ggplot(data = df %>% filter(!is.na(df[col])),
                   aes(x = fct_rev(fct_infreq(!!sym(col))), fill =
-                        fct_rev(BusinessProfitability))) # BusinessProfitability needs to be reversed
+                        fct_rev(WouldMigrateAgain))) # WouldMigrateAgain needs to be reversed
       # just so that guide_legend can then be reversed
       
       
@@ -332,7 +332,7 @@ make_plots_by_BusinessSuccess <- function(df){ # fun start
       # NEW (replace the above):
       #p <- ggplot(data = df %>% filter(!is.na(df[col])),
       #            aes(fill = fct_rev(fct_infreq(!!sym(col))), x = 
-      #                  fct_rev(BusinessProfitability))) # BusinessProfitability needs to be reversed
+      #                  fct_rev(WouldMigrateAgain))) # WouldMigrateAgain needs to be reversed
       # just so that guide_legend can then be reversed
       
       
@@ -354,11 +354,11 @@ make_plots_by_BusinessSuccess <- function(df){ # fun start
       p <- p + guides(fill = guide_legend(reverse = TRUE))
       # Generate title and subtitle using string literals
       if (N < 100) {
-        p <- p + labs(title = paste(col, '| by BusinessProfitability'),
+        p <- p + labs(title = paste(col, '| by WouldMigrateAgain'),
                       subtitle = paste0('Single-select | ', 'N = ', format(N, big.mark = ','),
                                         ', interpret with caution!' ))
       } else {
-        p <- p + labs(title = paste('Business Profitability | by', col), # paste(col, '| by BusinessProfitability')
+        p <- p + labs(title = paste('Plan to Migrate Again | by', col), # paste(col, '| by WouldMigrateAgain')
                       subtitle = paste0('Single-select | ', 'N = ', format(N, big.mark = ',')
                       ))
       }
@@ -383,12 +383,12 @@ make_plots_by_BusinessSuccess <- function(df){ # fun start
       print(p)
       # Export
       if (n_levels<15) {
-        ggsave(paste(counter, '_', col, '.png'), path = 'plots/single_select/by_BusinessProfitability', 
+        ggsave(paste(counter, '_', col, '.png'), path = 'plots/single_select/by_WouldMigrateAgain', 
                width = 16.5,
                height = n_levels * 1.8 + 1, units = 'cm')
         # If factor has more than 13 levels, it is better to use this proportion, though
       } else {
-        ggsave(paste(counter, '_', col, '.png'), path = 'plots/single_select/by_BusinessProfitability', 
+        ggsave(paste(counter, '_', col, '.png'), path = 'plots/single_select/by_WouldMigrateAgain', 
                width = 16.5,
                height = n_levels * 1.3, units = 'cm')  
       }
@@ -398,7 +398,7 @@ make_plots_by_BusinessSuccess <- function(df){ # fun start
       
       p <- ggplot(data = df %>% filter(!is.na(df[col])),
                   aes(x = !!sym(col), fill = # No longer needs to be reversed
-                        fct_rev(BusinessProfitability))) # BusinessProfitability needs to be reversed
+                        fct_rev(WouldMigrateAgain))) # WouldMigrateAgain needs to be reversed
       # just so that guide_legend can then be reversed
       p <- p + geom_bar(aes(y=..count../tapply(..count.., ..fill.. ,sum)[..fill..]),
                         position='dodge', width = 0.75, size = 3) # width initially 0.5
@@ -413,11 +413,11 @@ make_plots_by_BusinessSuccess <- function(df){ # fun start
       
       # Generate title and subtitle using string literals
       if (N < 100) {
-        p <- p + labs(title = paste(col, '| by BusinessProfitability'),
+        p <- p + labs(title = paste(col, '| by WouldMigrateAgain'),
                       subtitle = paste0('Single-select | ', 'N = ', format(N, big.mark = ',')
                                         , ', interpret with caution!' ))
       } else {
-        p <- p + labs(title = paste(col, '| by BusinessProfitability'),
+        p <- p + labs(title = paste(col, '| by WouldMigrateAgain'),
                       subtitle = paste0('Single-select | ', 'N = ', format(N, big.mark = ',')
                       ))
       }
@@ -442,12 +442,12 @@ make_plots_by_BusinessSuccess <- function(df){ # fun start
       print(p)
       # Export
       if (n_levels<15) {
-        ggsave(paste(counter, '_', col, '.png'), path = 'plots/single_select/by_BusinessProfitability', 
+        ggsave(paste(counter, '_', col, '.png'), path = 'plots/single_select/by_WouldMigrateAgain', 
                width = 16.5,
                height = n_levels * 1.8 + 1, units = 'cm')
         # If factor has more than 13 levels, it is better to use this proportion, though
       } else {
-        ggsave(paste(counter, '_', col, '.png'), path = 'plots/single_select/by_BusinessProfitability', 
+        ggsave(paste(counter, '_', col, '.png'), path = 'plots/single_select/by_WouldMigrateAgain', 
                width = 16.5,
                height = n_levels * 1.3, units = 'cm')  
       }
@@ -455,9 +455,9 @@ make_plots_by_BusinessSuccess <- function(df){ # fun start
       # (3) NUMERIC VARIABLES
     }  else if (is.numeric(df[[col]])) {  # if end; else if start
       
-      p <- ggplot(data = df, aes(y = !!sym(col), x = fct_rev(BusinessProfitability), 
-                                 fill = fct_rev(BusinessProfitability)))
-      p <- p + geom_jitter(aes(color=fct_rev(BusinessProfitability)), width = 0.2, alpha=1, size=0.6)
+      p <- ggplot(data = df, aes(y = !!sym(col), x = fct_rev(WouldMigrateAgain), 
+                                 fill = fct_rev(WouldMigrateAgain)))
+      p <- p + geom_jitter(aes(color=fct_rev(WouldMigrateAgain)), width = 0.2, alpha=1, size=0.6)
       p <- p +  geom_boxplot(alpha=0.9)
       #p <- p + scale_fill_manual(values = c('#38598CFF', '#FBA238FF', '#49C16DFF')) # note
       # colors are reversed!
@@ -468,11 +468,11 @@ make_plots_by_BusinessSuccess <- function(df){ # fun start
       # PUT above line once data are clean! Currently AmountSpent is infinite
       # Generate title and subtitle using string literals
       if (N < 100) {
-        p <- p + labs(title = paste(col, '| by BusinessProfitability'),
+        p <- p + labs(title = paste(col, '| by WouldMigrateAgain'),
                       subtitle = paste0('Single-select | ', 'N = ', format(N, big.mark = ',')
                                         , ', interpret with caution!' ))
       } else {
-        p <- p + labs(title = paste('Business Profitability | by', col),
+        p <- p + labs(title = paste('Plan to Migrate Again | by', col),
                       subtitle = paste0('Single-select | ', 'N = ', format(N, big.mark = ',')
                       ))
       }
@@ -490,7 +490,7 @@ make_plots_by_BusinessSuccess <- function(df){ # fun start
       print(p)
       
       # Export
-      ggsave(paste(counter, '_', col, '.png'), path = 'plots/single_select/by_BusinessProfitability', 
+      ggsave(paste(counter, '_', col, '.png'), path = 'plots/single_select/by_WouldMigrateAgain', 
              width = 16.5,
              height = n_grouping * 3 + 1, units = 'cm') # initially *1.3 
       
@@ -506,7 +506,7 @@ make_plots_by_BusinessSuccess <- function(df){ # fun start
 # Test on mini df
 #make_plots_by_BusinessSuccess(mini)
 # Implement on full data
-make_plots_by_BusinessSuccess(df)
+make_plots_by_another_variable(df)
 # Implement on custom data
 #make_plots_by_BusinessSuccess(df[df$Gender=='Man', ]) 
 
