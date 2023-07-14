@@ -3,8 +3,9 @@ library(tidyverse)
 library(ggplot2)
 library(GGally)
 
+
 # Load res object as df, and convert strings to factors
-df <- readRDS('data_clean/rss_slim.rds')%>% 
+df <- readRDS('data_clean/rss_slim_recoded.rds')%>% 
   mutate(across(where(is.character), as.factor))
 dim(df) # 1,385 x 21
 
@@ -63,8 +64,102 @@ ggplot(plot, aes(fill= fct_rev(Dimension), y=Score, x= Country, Score)) +
         plot.subtitle = element_text(size = 18))
         #panel.grid = element_blank())
 
+df
+# Same, but with boxplots
+plot_data <- df %>% rename(Country=origin_country) %>% 
+  select(Country, EconomicScore, CompositeScore) %>% 
+  pivot_longer(cols = -c(Country), values_to = 'Score', names_to = 'Dimension')
+plot_data
+
+ggplot(plot_data, aes(x=Country, y=Score, fill=Dimension))+
+  geom_boxplot()
 
 
+
+# NEW BAR VERSION
+
+# Credits: http://www.cookbook-r.com/Graphs/Plotting_means_and_error_bars_(ggplot2)/
+
+plot_data <- df %>% rename(Country=origin_country) %>% 
+  select(Country, EconomicScore, CompositeScore) %>% 
+  pivot_longer(cols = -c(Country), values_to = 'Score', names_to = 'Dimension') %>% 
+  mutate(Dimension = recode(Dimension,
+                            'EconomicScore' = 'Economic Score',
+                            'CompositeScore' = 'Composite Score'))
+plot_data
+
+# First, create function to summarise by group
+summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE,
+                      conf.interval=.95, .drop=TRUE) {
+  library(plyr)
+  
+  # New version of length which can handle NA's: if na.rm==T, don't count them
+  length2 <- function (x, na.rm=FALSE) {
+    if (na.rm) sum(!is.na(x))
+    else       length(x)
+  }
+  
+  # This does the summary. For each group's data frame, return a vector with
+  # N, mean, and sd
+  datac <- ddply(data, groupvars, .drop=.drop,
+                 .fun = function(xx, col) {
+                   c(N    = length2(xx[[col]], na.rm=na.rm),
+                     mean = mean   (xx[[col]], na.rm=na.rm),
+                     sd   = sd     (xx[[col]], na.rm=na.rm)
+                   )
+                 },
+                 measurevar
+  )
+  
+  # Rename the "mean" column    
+  datac <- rename(datac, c("mean" = measurevar))
+  
+  datac$se <- datac$sd / sqrt(datac$N)  # Calculate standard error of the mean
+  
+  # Confidence interval multiplier for standard error
+  # Calculate t-statistic for confidence interval: 
+  # e.g., if conf.interval is .95, use .975 (above/below), and use df=N-1
+  ciMult <- qt(conf.interval/2 + .5, datac$N-1)
+  datac$ci <- datac$se * ciMult
+  
+  return(datac)
+}
+
+plot_data
+
+# Load purr before plyr
+library(plyr); library(dplyr)
+
+tgc <- summarySE(plot_data, measurevar="Score", groupvars=c("Country","Dimension"))
+tgc
+
+
+
+
+
+ggplot(tgc, aes(x=Score, y=fct_reorder(Country, Score), fill=fct_rev(Dimension))) + 
+  geom_bar(position=position_dodge(), stat="identity", width=0.7) +
+  geom_errorbar(aes(xmin=Score-ci, xmax=Score+ci),
+                width=.2, colour='red', size=0.8,
+                position=position_dodge(.7))+
+  guides(fill = guide_legend(reverse = TRUE))+
+  
+  scale_fill_manual(values = c('darkgrey', 'black'))+
+  theme_minimal()+
+  theme(axis.title.y = element_blank(),
+        axis.title.x = element_blank(),
+        #axis.text.x = element_blank(),
+        axis.text.y = element_text(colour='black', size = 18),
+        axis.text.x = element_text(colour='black', size = 18),
+        #axis.title.x = element_text(colour='black', size = 16),
+        legend.position = 'top',
+        #legend.position = c(0.95, 1.05),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 18),
+        plot.margin = margin(r=25, l=1, b=0, t=1),
+        plot.title = element_text(size = 18),
+        plot.subtitle = element_text(size = 18))
+#panel.grid = element_blank())
 
 
 
